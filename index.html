@@ -222,7 +222,7 @@
   @keyframes jolt { 30% { transform: scale(1.3) rotate(12deg); } }
   svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
-  .txt { margin-top: auto; padding-right: 42px; position: relative; }
+  .txt { margin-top: auto; position: relative; min-width: 0; overflow-wrap: break-word; }
   .card h3 {
     position: relative; display: inline-block;
     font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px;
@@ -236,13 +236,13 @@
   .card.on h3::after { transform: scaleX(1); }
   .card p { font-size: 13px; color: #7a7a7a; line-height: 1.35; transition: color .4s; }
   .card.on p { color: #b5b5b5; }
-  .tall h3 { font-size: 21px; line-height: 1.1; }
+  .tall h3 { font-size: clamp(16px, 5.4vw, 21px); line-height: 1.1; }
   .tall .icon { width: 56px; height: 56px; border-radius: 18px; }
   .tall .icon svg { width: 28px; height: 28px; }
 
   /* стрелка, которая раскрывается в кнопку «Открыть» */
   .go {
-    position: absolute; right: 12px; bottom: 12px; z-index: 2;
+    position: relative; align-self: flex-end; margin: 12px -4px -4px 0; z-index: 2; flex-shrink: 0;
     height: 36px; min-width: 36px; padding: 0 10px; border-radius: 18px; pointer-events: none;
     background: #fff; color: #000; overflow: hidden;
     display: flex; align-items: center; justify-content: flex-end; gap: 0;
@@ -258,10 +258,10 @@
   .card.on .go svg { transform: rotate(45deg); }
 
   /* широкая обычная карточка — в строку */
-  .wide .card:not(.main) { flex-direction: row; align-items: center; gap: 14px; padding: 18px 64px 18px 16px; }
+  .wide .card:not(.main) { flex-direction: row; align-items: center; gap: 14px; padding: 18px 16px; }
   .wide .card:not(.main) .icon { margin: 0; }
   .wide .card:not(.main) .txt { margin: 0; padding: 0; }
-  .wide .card:not(.main) .go { top: 50%; bottom: auto; margin-top: -18px; }
+  .wide .card:not(.main) .go { align-self: center; margin: 0 0 0 auto; }
 
   /* ===== Главная карточка (с ссылкой): «портал» со светящейся сферой ===== */
   .main-wrap { position: relative; }
@@ -282,7 +282,7 @@
 
   /* колба эликсира */
   .elixir {
-    position: absolute; right: 24px; top: 12px; width: 66px; height: 132px; z-index: 0; pointer-events: none;
+    position: relative; flex-shrink: 0; width: 66px; height: 132px; margin: -8px 2px -6px 0; pointer-events: none;
     animation: hover 5s ease-in-out infinite; transition: scale .7s var(--spring);
   }
   @keyframes hover { 50% { translate: 0 -4px; } }
@@ -306,7 +306,8 @@
   .card.main.on .cork { transform: translateY(-5px) rotate(-5deg); transform-origin: 40px 36px; }
   .halftone { opacity: .42; pointer-events: none; }
 
-  .main-txt { position: relative; z-index: 2; max-width: 58%; }
+  .main-top { position: relative; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .main-txt { flex: 1; min-width: 0; }
   .tag {
     display: inline-flex; align-items: center; gap: 7px; margin-bottom: 18px;
     font: 500 11px/1 "Inter", sans-serif; letter-spacing: .18em; text-transform: uppercase; color: #ff8a8a;
@@ -314,7 +315,7 @@
   .tag i { width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red);
            animation: blink 1.6s ease-in-out infinite; }
   .card.main h3 {
-    font-size: 40px; font-weight: 800; letter-spacing: -.045em; line-height: .95; margin: 0;
+    font-size: clamp(30px, 10.5vw, 40px); font-weight: 800; letter-spacing: -.045em; line-height: .95; margin: 0;
     background: linear-gradient(180deg, #fff 30%, #ffb0b0 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
   }
   .card.main h3::after { display: none; }
@@ -757,7 +758,8 @@
         const buy = make("div", "buy"), arr = make("span", "arr");
         arr.innerHTML = svg("arrow");
         buy.append(make("b", "", "Написать @" + c.link.replace(/^@/, "").replace(/^https?:\/\/t\.me\//, "")), arr);
-        card.append(elixir, txt, buy);
+        const top = make("div", "main-top"); top.append(txt, elixir);
+        card.append(top, buy);
         slosh(card, elixir.querySelector(".liquid"), elixir.querySelector(".surf"));
         const wrap = make("div", "main-wrap"); wrap.append(card); cell.append(wrap);
         interactive(card, e => {
