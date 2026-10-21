@@ -120,153 +120,245 @@
   .sub { color: var(--hint); font-size: 15px; line-height: 1.4; max-width: 320px; margin: 0 auto; }
 
   /* ===== Бенто-сетка ===== */
-  .grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(150px, auto); gap: 12px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(156px, auto); gap: 12px; }
   .cell { perspective: 900px; }
-  .cell.wide { grid-column: span 2; grid-auto-rows: auto; }
+  .cell.wide { grid-column: span 2; }
   .cell.tall { grid-row: span 2; }
+  @property --lx { syntax: "<percentage>"; initial-value: 30%; inherits: false; }
+  @property --ly { syntax: "<percentage>"; initial-value: 30%; inherits: false; }
 
   .card {
     position: relative; height: 100%; border-radius: 24px; padding: 16px;
     display: flex; flex-direction: column;
-    background: linear-gradient(160deg, #171717 0%, var(--card) 55%, #070707 100%);
-    border: 1px solid var(--border); overflow: hidden; cursor: pointer; isolation: isolate;
-    transform: rotateX(calc(var(--rx, 0deg) + var(--gy) * -5deg)) rotateY(calc(var(--ry, 0deg) + var(--gx) * 7deg)) scale(var(--s, 1));
-    transition: transform .6s var(--spring), border-color .3s, opacity .3s;
-    animation: float 6s ease-in-out infinite; animation-delay: var(--fd, 0s);
+    background: #080808; border: 1px solid #191919;
+    overflow: hidden; cursor: pointer; isolation: isolate;
+    transform: rotateX(calc(var(--rx, 0deg) + var(--gy) * -5deg)) rotateY(calc(var(--ry, 0deg) + var(--gx) * 7deg))
+               translateZ(var(--z, 0px)) scale(var(--s, 1));
+    transition: transform .7s var(--spring), border-color .4s, box-shadow .5s, opacity .3s;
+    animation: float 7s ease-in-out infinite; animation-delay: var(--fd, 0s);
   }
-  .card.touch { transition: transform .12s ease-out, border-color .3s; --s: .97; border-color: #333; }
+  @keyframes float { 50% { translate: 0 -5px; } }
+  .card.on { --z: 18px; transition: transform .25s ease-out, border-color .4s, box-shadow .5s;
+             border-color: #2c0b0b; box-shadow: 0 24px 50px -20px rgba(255, 42, 42, .45); }
+  .card.press { --s: .97; }
   .card.lift { --s: 1.04; opacity: .4; }
-  @keyframes float { 50% { translate: 0 -6px; } }
 
-  /* огонёк, который бегает по рамке */
+  /* туман внутри */
+  .fog { position: absolute; inset: -30%; z-index: -2; pointer-events: none; opacity: .55; transition: opacity .6s; }
+  .fog::before, .fog::after {
+    content: ""; position: absolute; width: 70%; height: 70%; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 30, 30, .22), transparent 65%);
+    animation: fog1 11s ease-in-out infinite alternate; animation-delay: var(--fd, 0s);
+  }
+  .fog::after { right: 0; bottom: 0; background: radial-gradient(circle, rgba(140, 0, 0, .3), transparent 65%);
+                animation-name: fog2; animation-duration: 14s; }
+  @keyframes fog1 { from { transform: translate(10%, 20%); } to { transform: translate(60%, 50%) scale(1.3); } }
+  @keyframes fog2 { from { transform: translate(0, 0); } to { transform: translate(-50%, -40%) scale(.8); } }
+  .card.on .fog { opacity: 1; }
+
+  /* скрытый узор, который проявляется под «фонариком» */
+  .reveal {
+    position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, .55) 1px, transparent 1.4px);
+    background-size: 12px 12px;
+    -webkit-mask-image: radial-gradient(circle 90px at var(--lx) var(--ly), #000 0%, transparent 100%);
+            mask-image: radial-gradient(circle 90px at var(--lx) var(--ly), #000 0%, transparent 100%);
+    opacity: .35; animation: wander 9s ease-in-out infinite alternate; animation-delay: var(--fd, 0s);
+    transition: opacity .4s;
+  }
+  @keyframes wander {
+    0% { --lx: 15%; --ly: 20%; } 33% { --lx: 85%; --ly: 35%; }
+    66% { --lx: 30%; --ly: 85%; } 100% { --lx: 80%; --ly: 75%; }
+  }
+  .reveal.hand {  /* тот же узор, но красный и за пальцем */
+    animation: none; opacity: 0;
+    background-image: radial-gradient(rgba(255, 60, 60, .95) 1.1px, transparent 1.5px);
+    -webkit-mask-image: radial-gradient(circle 120px at var(--mx, 50%) var(--my, 50%), #000 0%, transparent 100%);
+            mask-image: radial-gradient(circle 120px at var(--mx, 50%) var(--my, 50%), #000 0%, transparent 100%);
+  }
+  .card.on .reveal.hand { opacity: 1; }
+  .card.on .reveal:not(.hand) { opacity: 0; }
+
+  /* рамка, которая загорается там, где палец */
   .card::before {
-    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 2;
-    background: conic-gradient(from var(--angle), transparent 0 72%, rgba(255, 42, 42, .9) 86%, #fff 90%, transparent 96%);
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 3;
+    background: radial-gradient(160px circle at var(--mx, 50%) var(--my, 0%), var(--red), rgba(255, 255, 255, .5) 25%, transparent 70%);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
             mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor; mask-composite: exclude;
-    animation: spin 7s linear infinite; animation-delay: var(--fd, 0s);
+    opacity: 0; transition: opacity .4s;
   }
-  /* блик за пальцем и от наклона телефона */
+  .card.on::before { opacity: 1; }
+  /* верхняя кромка-блик */
   .card::after {
-    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
-    background: radial-gradient(240px circle at var(--mx, calc(50% + var(--gx) * 60%)) var(--my, calc(30% + var(--gy) * 60%)),
-                rgba(255, 255, 255, .09), transparent 60%);
-    transition: opacity .3s;
+    content: ""; position: absolute; left: 18%; right: 18%; top: 0; height: 1px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .35), transparent);
   }
-  .card.touch::after { background: radial-gradient(240px circle at var(--mx) var(--my), rgba(255, 255, 255, .16), transparent 60%); }
 
-  /* водяной знак — огромная иконка на фоне */
-  .mark {
-    position: absolute; right: -28px; bottom: -28px; width: 130px; height: 130px; z-index: -1;
-    color: #fff; opacity: .045; rotate: -14deg;
-    translate: calc(var(--gx) * -10px) calc(var(--gy) * -10px);
-    transition: opacity .4s, color .4s, scale .6s var(--spring);
-  }
-  .mark svg { width: 100%; height: 100%; animation: markspin 24s linear infinite; }
-  .mark svg.i { stroke-width: 1.2; }
-  @keyframes markspin { to { rotate: 360deg; } }
-  .card.touch .mark { opacity: .16; color: var(--red); scale: 1.15; }
-  .tall .mark { width: 190px; height: 190px; right: -40px; bottom: -30px; }
-
-  /* контурный номер */
+  /* номер с «сигналом» */
   .num {
-    position: absolute; top: 12px; right: 14px; font: 900 34px/1 var(--display); letter-spacing: -.04em;
-    color: transparent; -webkit-text-stroke: 1px #2b2b2b; transition: -webkit-text-stroke-color .3s, translate .5s var(--spring);
+    position: absolute; top: 16px; right: 16px; display: flex; align-items: center; gap: 6px;
+    font: 500 11px/1 "Inter", sans-serif; letter-spacing: .18em; color: #555; transition: color .4s;
   }
-  .card.touch .num { -webkit-text-stroke-color: var(--red); translate: 0 -3px; }
-  .tall .num { font-size: 54px; }
+  .num::before {
+    content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--red);
+    box-shadow: 0 0 8px var(--red); animation: blink 2.2s ease-in-out infinite; animation-delay: var(--fd, 0s);
+  }
+  @keyframes blink { 50% { opacity: .2; } }
+  .card.on .num { color: #fff; }
 
   .icon {
-    width: 46px; height: 46px; border-radius: 15px; margin-bottom: 14px; flex-shrink: 0;
-    background: #161616; border: 1px solid #272727;
+    width: 46px; height: 46px; border-radius: 15px; margin-bottom: 14px; flex-shrink: 0; position: relative;
+    background: rgba(255, 255, 255, .03); border: 1px solid #222; color: #bdbdbd;
     display: flex; align-items: center; justify-content: center; font-size: 22px;
-    transition: background .3s, border-color .3s, transform .5s var(--spring), box-shadow .3s;
+    transition: background .4s, border-color .4s, color .4s, transform .6s var(--spring), box-shadow .4s;
   }
-  .icon svg { width: 22px; height: 22px; animation: bob 3.2s ease-in-out infinite; animation-delay: var(--fd, 0s); }
-  @keyframes bob { 50% { transform: translateY(-2px) rotate(-6deg); } }
-  .card.touch .icon { background: var(--red); border-color: var(--red); transform: scale(1.1) rotate(-6deg); box-shadow: 0 8px 24px -6px var(--red); }
+  .icon svg { width: 22px; height: 22px; }
+  .card.on .icon {
+    background: var(--red); border-color: var(--red); color: #fff;
+    transform: translateZ(30px) rotate(-8deg) scale(1.08); box-shadow: 0 10px 28px -6px var(--red);
+  }
+  .card.on .icon svg { animation: jolt .6s var(--spring); }
+  @keyframes jolt { 30% { transform: scale(1.3) rotate(12deg); } }
   svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
-  .txt { margin-top: auto; padding-right: 40px; }
-  .card h3 { font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 5px; }
-  .card p { font-size: 13px; color: var(--hint); line-height: 1.35; }
-  .tall h3 { font-size: 20px; line-height: 1.1; }
+  .txt { margin-top: auto; padding-right: 42px; position: relative; }
+  .card h3 {
+    position: relative; display: inline-block;
+    font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px;
+    transition: transform .5s var(--spring);
+  }
+  .card h3::after {  /* линия, которая прорисовывается при наведении */
+    content: ""; position: absolute; left: 0; bottom: -3px; height: 2px; width: 100%; border-radius: 2px;
+    background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform .5s cubic-bezier(.7, 0, .2, 1);
+  }
+  .card.on h3 { transform: translateY(-2px); }
+  .card.on h3::after { transform: scaleX(1); }
+  .card p { font-size: 13px; color: #7a7a7a; line-height: 1.35; transition: color .4s; }
+  .card.on p { color: #b5b5b5; }
+  .tall h3 { font-size: 21px; line-height: 1.1; }
   .tall .icon { width: 56px; height: 56px; border-radius: 18px; }
   .tall .icon svg { width: 28px; height: 28px; }
 
+  /* стрелка, которая раскрывается в кнопку «Открыть» */
   .go {
-    position: absolute; right: 12px; bottom: 12px;
-    width: 36px; height: 36px; border-radius: 50%; border: none; pointer-events: none;
-    background: #fff; color: #000;
-    display: flex; align-items: center; justify-content: center;
-    transition: background .3s, color .3s, transform .5s var(--spring);
+    position: absolute; right: 12px; bottom: 12px; z-index: 2;
+    height: 36px; min-width: 36px; padding: 0 10px; border-radius: 18px; pointer-events: none;
+    background: #fff; color: #000; overflow: hidden;
+    display: flex; align-items: center; justify-content: flex-end; gap: 0;
+    transition: background .4s, color .4s, gap .5s var(--spring);
   }
-  .go svg { width: 18px; height: 18px; animation: nudge 2.4s ease-in-out infinite; }
-  @keyframes nudge { 0%, 70%, 100% { transform: none; } 80% { transform: translate(2px, -2px); } }
-  .card.touch .go { background: var(--red); color: #fff; transform: rotate(45deg) scale(1.12); }
+  .go span {
+    font: 600 12px "Inter", sans-serif; white-space: nowrap; max-width: 0; opacity: 0;
+    transition: max-width .5s var(--spring), opacity .3s;
+  }
+  .go svg { width: 16px; height: 16px; flex-shrink: 0; transition: transform .5s var(--spring); }
+  .card.on .go { background: var(--red); color: #fff; gap: 6px; }
+  .card.on .go span { max-width: 70px; opacity: 1; }
+  .card.on .go svg { transform: rotate(45deg); }
 
   /* широкая обычная карточка — в строку */
-  .wide .card:not(.main) { flex-direction: row; align-items: center; gap: 14px; padding: 16px 64px 16px 16px; }
+  .wide .card:not(.main) { flex-direction: row; align-items: center; gap: 14px; padding: 18px 64px 18px 16px; }
   .wide .card:not(.main) .icon { margin: 0; }
   .wide .card:not(.main) .txt { margin: 0; padding: 0; }
   .wide .card:not(.main) .go { top: 50%; bottom: auto; margin-top: -18px; }
-  .wide .card:not(.main) .num { top: auto; bottom: 10px; right: 60px; font-size: 26px; }
 
-  /* ===== Главная карточка (с ссылкой) ===== */
+  /* ===== Главная карточка (с ссылкой): «портал» со светящейся сферой ===== */
   .main-wrap { position: relative; }
-  .main-wrap::after {   /* мягкое свечение под карточкой */
-    content: ""; position: absolute; left: 10%; right: 10%; bottom: -14px; height: 60%; z-index: -1;
-    border-radius: 50%; background: var(--red); filter: blur(34px);
-    animation: glow 3.4s ease-in-out infinite;
+  .main-wrap::after {   /* свечение вокруг */
+    content: ""; position: absolute; inset: -12% -8% -18%; z-index: -1; pointer-events: none;
+    background: radial-gradient(50% 50% at 72% 50%, rgba(255, 42, 42, .5), transparent 100%);
+    animation: halo 4s ease-in-out infinite;
   }
-  @keyframes glow { 0%, 100% { opacity: .45; transform: scaleX(.92); } 50% { opacity: .8; transform: scaleX(1); } }
+  @keyframes halo { 50% { opacity: .55; transform: scale(.96); } }
   .card.main {
-    border: none; border-radius: 28px; padding: 20px; min-height: 168px;
-    flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 16px;
-    background: linear-gradient(145deg, #ff3b3b 0%, #e60f0f 45%, #a80000 100%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 -1px 0 rgba(0, 0, 0, .25);
+    min-height: 210px; padding: 22px 20px 20px; border-radius: 28px; border-color: rgba(255, 60, 60, .35);
+    background: radial-gradient(70% 90% at 78% 40%, rgba(255, 42, 42, .55), transparent 60%),
+                linear-gradient(160deg, #1c0404 0%, #0a0101 60%, #000 100%);
     animation: none;
   }
-  .card.main::before {  /* медленно переливающийся свет внутри */
-    -webkit-mask: none; mask: none; padding: 0; z-index: 0;
-    background: radial-gradient(60% 90% at 20% 0%, rgba(255, 255, 255, .32), transparent 70%),
-                radial-gradient(50% 70% at 100% 100%, rgba(80, 0, 0, .55), transparent 70%);
-    background-size: 200% 200%; animation: liquid 9s ease-in-out infinite alternate;
+  .card.main.on { --z: 10px; border-color: rgba(255, 90, 90, .7); box-shadow: 0 30px 70px -20px rgba(255, 42, 42, .8); }
+  .card.main .reveal { opacity: .2; background-image: radial-gradient(rgba(255, 120, 120, .6) 1px, transparent 1.4px); }
+
+  .portal { position: absolute; right: 22px; top: 22px; width: 112px; height: 112px; z-index: 0; pointer-events: none;
+            transition: transform .8s var(--spring); }
+  .card.main.on .portal { transform: scale(1.12); }
+  .orb {
+    position: absolute; inset: 14px; border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, #fff 0%, #ffb3b3 9%, #ff3030 32%, #b00000 64%, #2a0000 100%);
+    box-shadow: 0 0 40px 6px rgba(255, 42, 42, .75), 0 0 90px 20px rgba(255, 42, 42, .35), inset -10px -14px 26px rgba(0, 0, 0, .55);
+    animation: orb 5s ease-in-out infinite;
+    transition: box-shadow .6s, filter .6s;
   }
-  @keyframes liquid { from { background-position: 0% 0%, 100% 100%; } to { background-position: 60% 30%, 40% 60%; } }
-  .card.main::after { z-index: 1; }
-  .main-txt { position: relative; z-index: 2; min-width: 0; }
+  @keyframes orb { 50% { transform: translateY(-5px) scale(1.03); } }
+  .card.main.on .orb { filter: brightness(1.2) saturate(1.2);
+    box-shadow: 0 0 60px 14px rgba(255, 42, 42, .9), 0 0 130px 40px rgba(255, 42, 42, .45), inset -10px -14px 26px rgba(0, 0, 0, .5); }
+  .ring {
+    position: absolute; inset: -6px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .28);
+    transform: rotateX(72deg) rotateZ(0deg); animation: ring 9s linear infinite;
+  }
+  .ring::before { content: ""; position: absolute; top: -3px; left: 50%; width: 6px; height: 6px; border-radius: 50%;
+                  background: #fff; box-shadow: 0 0 10px #fff; }
+  .ring.r2 { inset: 4px -14px; border-color: rgba(255, 60, 60, .45); transform: rotateX(70deg) rotateY(28deg);
+             animation: ring2 13s linear infinite reverse; }
+  .ring.r2::before { background: var(--red); box-shadow: 0 0 10px var(--red); }
+  @keyframes ring { to { transform: rotateX(72deg) rotateZ(360deg); } }
+  @keyframes ring2 { to { transform: rotateX(70deg) rotateY(28deg) rotateZ(360deg); } }
+  .card.main.on .ring { animation-duration: 2.5s; }
+  .card.main.on .ring.r2 { animation-duration: 3.5s; }
+  .ember {  /* искры, поднимающиеся от сферы */
+    position: absolute; bottom: 30%; width: 3px; height: 3px; border-radius: 50%; background: #ff6b6b;
+    box-shadow: 0 0 6px #ff2a2a; opacity: 0; pointer-events: none; z-index: 0;
+    animation: ember 4s ease-in infinite;
+  }
+  @keyframes ember { 0% { opacity: 0; transform: translateY(0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx, 10px), -120px); } }
+
+  .main-txt { position: relative; z-index: 2; max-width: 58%; }
   .tag {
-    display: inline-flex; align-items: center; gap: 7px; margin-bottom: 22px;
-    padding: 6px 11px 6px 9px; border-radius: 999px;
-    background: rgba(0, 0, 0, .22); border: 1px solid rgba(255, 255, 255, .18);
-    font: 500 12px "Inter", sans-serif; color: #fff;
-    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    display: inline-flex; align-items: center; gap: 7px; margin-bottom: 18px;
+    font: 500 11px/1 "Inter", sans-serif; letter-spacing: .18em; text-transform: uppercase; color: #ff8a8a;
   }
-  .tag i { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: blink 1.6s ease-in-out infinite; }
-  @keyframes blink { 50% { opacity: .25; } }
-  .card.main h3 { font-size: 40px; font-weight: 800; letter-spacing: -.04em; line-height: .95; margin: 0; }
-  .card.main p { color: rgba(255, 255, 255, .82); font-size: 14px; margin-top: 8px; }
+  .tag i { width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red);
+           animation: blink 1.6s ease-in-out infinite; }
+  .card.main h3 {
+    font-size: 40px; font-weight: 800; letter-spacing: -.045em; line-height: .95; margin: 0;
+    background: linear-gradient(180deg, #fff 30%, #ffb0b0 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .card.main h3::after { display: none; }
+  .card.main p { color: rgba(255, 255, 255, .62); font-size: 13.5px; margin-top: 10px; }
   .buy {
-    position: relative; z-index: 2; flex-shrink: 0; width: 64px; height: 64px; border-radius: 50%;
-    background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 10px 24px -8px rgba(0, 0, 0, .5);
-    transition: transform .55s var(--spring), background .3s, color .3s;
+    position: relative; z-index: 2; margin-top: 22px; overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 8px 8px 20px; border-radius: 999px; background: #fff; color: #000;
+    font: 600 15px "Inter", sans-serif;
+    transition: color .45s, box-shadow .5s;
   }
-  .buy svg { width: 26px; height: 26px; stroke-width: 2; }
-  .buy::before, .buy::after {  /* расходящиеся кольца */
-    content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, .7);
-    animation: ring 2.6s ease-out infinite;
+  .buy::before {  /* красная заливка, которая «вытекает» слева */
+    content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--red); z-index: -1;
+    transform: scaleX(0); transform-origin: left; transition: transform .55s cubic-bezier(.7, 0, .2, 1);
   }
-  .buy::after { animation-delay: 1.3s; }
-  @keyframes ring { from { transform: scale(1); opacity: .8; } to { transform: scale(1.7); opacity: 0; } }
-  .card.main.touch .buy { transform: rotate(45deg) scale(1.1); background: #000; color: #fff; }
+  .buy { isolation: isolate; }
+  .buy b { font-weight: 600; position: relative; }
+  .buy .arr {
+    width: 38px; height: 38px; border-radius: 50%; background: #000; color: #fff;
+    display: flex; align-items: center; justify-content: center; transition: transform .6s var(--spring), background .4s, color .4s;
+  }
+  .buy .arr svg { width: 18px; height: 18px; animation: nudge 2.4s ease-in-out infinite; }
+  @keyframes nudge { 0%, 70%, 100% { transform: none; } 80% { transform: translate(2px, -2px); } }
+  .buy::after {  /* редкий блик */
+    content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 30%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .7), transparent);
+    transform: skewX(-20deg); animation: sweep 5s ease-in-out infinite;
+  }
+  @keyframes sweep { 0%, 70% { left: -40%; } 100% { left: 130%; } }
+  .card.main.on .buy { color: #fff; box-shadow: 0 10px 30px -8px rgba(255, 42, 42, .9); }
+  .card.main.on .buy::before { transform: scaleX(1); }
+  .card.main.on .buy .arr { background: #fff; color: var(--red); transform: rotate(45deg); }
 
   /* волна от касания и искры */
   .ripple {
     position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; z-index: 4;
-    background: rgba(255, 255, 255, .3); pointer-events: none;
+    background: rgba(255, 60, 60, .35); pointer-events: none;
     animation: ripple .7s ease-out forwards;
   }
   @keyframes ripple { to { transform: scale(28); opacity: 0; } }
@@ -287,7 +379,10 @@
   }
   .sheet.show { transform: translateY(var(--drag, 0px)); }
   .sheet.dragging { transition: none; }
-  .sheet .mark { position: absolute; right: -40px; top: -20px; bottom: auto; width: 220px; height: 220px; opacity: .05; z-index: 0; }
+  .sheet .mark { position: absolute; right: -40px; top: -20px; width: 220px; height: 220px; opacity: .05; z-index: 0; rotate: -14deg; pointer-events: none; }
+  .sheet .mark svg { width: 100%; height: 100%; animation: markspin 24s linear infinite; }
+  .sheet .mark svg.i { stroke-width: 1.2; }
+  @keyframes markspin { to { rotate: 360deg; } }
   .grab { width: 40px; height: 5px; border-radius: 3px; background: #333; margin: 0 auto 18px; }
   .sheet > .anim { position: relative; opacity: 0; transform: translateY(16px); transition: opacity .4s, transform .55s var(--spring); }
   .sheet.show > .anim { opacity: 1; transform: none; }
@@ -447,31 +542,34 @@
     }
   }
 
-  // Наклон карточки за пальцем, блик и волна от касания
+  // Наведение (мышью) или касание: наклон за пальцем, свет, раскрытие деталей
   function interactive(card, onTap) {
-    let rect;
     const move = e => {
+      const rect = card.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width, y = (e.clientY - rect.top) / rect.height;
-      card.style.setProperty("--ry", ((x - .5) * 16) + "deg");
-      card.style.setProperty("--rx", ((.5 - y) * 16) + "deg");
+      card.style.setProperty("--ry", ((x - .5) * 14) + "deg");
+      card.style.setProperty("--rx", ((.5 - y) * 14) + "deg");
       card.style.setProperty("--mx", (x * 100) + "%");
       card.style.setProperty("--my", (y * 100) + "%");
     };
-    const reset = () => {
-      card.classList.remove("touch");
-      ["--rx", "--ry", "--mx", "--my"].forEach(p => card.style.removeProperty(p));
+    const off = () => {
+      card.classList.remove("on", "press");
+      ["--rx", "--ry"].forEach(p => card.style.removeProperty(p));
     };
+    card.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") { card.classList.add("on"); move(e); } });
+    card.addEventListener("pointermove", e => { if (card.classList.contains("on")) move(e); });
     card.addEventListener("pointerdown", e => {
-      rect = card.getBoundingClientRect();
-      card.classList.add("touch"); move(e); haptic("light");
-      const r = make("span", "ripple");
+      card.classList.add("on", "press"); move(e); haptic("light");
+      const rect = card.getBoundingClientRect(), r = make("span", "ripple");
       r.style.left = (e.clientX - rect.left) + "px"; r.style.top = (e.clientY - rect.top) + "px";
       card.appendChild(r); setTimeout(() => r.remove(), 700);
     });
-    card.addEventListener("pointermove", e => { if (card.classList.contains("touch")) move(e); });
-    card.addEventListener("pointerup", reset);
-    card.addEventListener("pointerleave", reset);
-    card.addEventListener("pointercancel", reset);
+    card.addEventListener("pointerup", e => {
+      card.classList.remove("press");
+      if (e.pointerType !== "mouse") setTimeout(off, 260);  // даём анимации раскрыться
+    });
+    card.addEventListener("pointerleave", off);
+    card.addEventListener("pointercancel", off);
     card.addEventListener("click", e => onTap(e));
   }
 
@@ -535,18 +633,29 @@
       const card = make("div", "card");
       card.style.setProperty("--fd", (-i * 1.7) + "s");
       const icon = make("div", "icon"); setIcon(icon, c.icon);
-      const mark = make("div", "mark"); if (iconName(c.icon)) mark.innerHTML = svg(iconName(c.icon));
       const h3 = make("h3", "", c.title);
+      card.append(make("div", "fog"), make("div", "reveal"), make("div", "reveal hand"));
 
       if (c.link) {
         cell.classList.add("wide");
         card.classList.add("main");
+        const portal = make("div", "portal");
+        portal.append(make("div", "ring"), make("div", "ring r2"), make("div", "orb"));
+        for (let k = 0; k < 7; k++) {
+          const e = make("span", "ember");
+          e.style.right = (40 + Math.random() * 90) + "px";
+          e.style.animationDelay = (k * .6) + "s";
+          e.style.setProperty("--dx", (Math.random() * 40 - 20) + "px");
+          card.append(e);
+        }
         const txt = make("div", "main-txt"), tag = make("div", "tag");
-        tag.append(make("i"), "@" + c.link.replace(/^@/, "").replace(/^https?:\/\/t\.me\//, ""));
+        tag.append(make("i"), "Доступ");
         txt.append(tag, h3);
         if (c.short) txt.append(make("p", "", c.short));
-        const buy = make("div", "buy"); buy.innerHTML = svg("arrow");
-        card.append(txt, buy);
+        const buy = make("div", "buy"), arr = make("span", "arr");
+        arr.innerHTML = svg("arrow");
+        buy.append(make("b", "", "Написать @" + c.link.replace(/^@/, "").replace(/^https?:\/\/t\.me\//, "")), arr);
+        card.append(portal, txt, buy);
         const wrap = make("div", "main-wrap"); wrap.append(card); cell.append(wrap);
         interactive(card, e => {
           haptic("success"); burst(e.clientX, e.clientY);
@@ -558,10 +667,11 @@
         else if (regular !== 3 && regular % 2 && n === regular) cell.classList.add("wide");
         const txt = make("div", "txt");
         txt.append(h3, make("p", "", c.short));
-        const go = make("div", "go"); go.innerHTML = svg("arrow");
-        card.append(mark, make("div", "num", String(n).padStart(2, "0")), icon, txt, go);
+        const go = make("div", "go"); go.append(make("span", "", "Открыть"));
+        go.insertAdjacentHTML("beforeend", svg("arrow"));
+        card.append(make("div", "num", String(n).padStart(2, "0")), icon, txt, go);
         cell.append(card);
-        interactive(card, () => openSheet(c, card));
+        interactive(card, () => setTimeout(() => openSheet(c, card), 160));
       }
       grid.appendChild(cell);
     });
