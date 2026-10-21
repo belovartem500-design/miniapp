@@ -7,18 +7,19 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #000000;          /* фон */
-    --card: #0c0c0c;        /* карточки */
-    --border: #1f1f1f;      /* тонкая рамка карточек */
+    --card: #0b0b0b;        /* карточки */
+    --border: #1d1d1d;      /* тонкая рамка карточек */
     --text: #ffffff;        /* основной текст */
     --hint: #8a8a8a;        /* серые подписи */
     --red: #ff2a2a;         /* главный акцент */
     --red-deep: #b80000;    /* тёмный красный для градиентов */
     --spring: cubic-bezier(.34, 1.56, .64, 1);
     --display: "Unbounded", -apple-system, BlinkMacSystemFont, sans-serif;
+    --gx: 0; --gy: 0;       /* наклон телефона, -1..1 */
   }
   @property --angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
 
@@ -31,21 +32,32 @@
     -webkit-user-select: none; user-select: none;
   }
 
-  /* ===== Живой фон: дрейфующее красное свечение + зерно ===== */
+  /* ===== Живой фон: дрейфующее красное свечение, сетка, зерно ===== */
   .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+  .bg-layer { position: absolute; inset: -60px; translate: calc(var(--gx) * -30px) calc(var(--gy) * -30px); }
   .blob {
     position: absolute; width: 520px; height: 520px; border-radius: 50%;
     background: radial-gradient(circle, rgba(255, 42, 42, .32) 0%, rgba(255, 42, 42, 0) 62%);
     will-change: transform;
   }
-  .blob.b1 { top: -220px; left: -200px; animation: drift1 16s ease-in-out infinite alternate; }
-  .blob.b2 { bottom: -260px; right: -240px; animation: drift2 19s ease-in-out infinite alternate;
-             background: radial-gradient(circle, rgba(184, 0, 0, .35) 0%, rgba(184, 0, 0, 0) 62%); }
+  .blob.b1 { top: -160px; left: -140px; animation: drift1 16s ease-in-out infinite alternate; }
+  .blob.b2 { bottom: -200px; right: -180px; animation: drift2 19s ease-in-out infinite alternate;
+             background: radial-gradient(circle, rgba(184, 0, 0, .38) 0%, rgba(184, 0, 0, 0) 62%); }
   .blob.b3 { top: 40%; left: 30%; width: 320px; height: 320px; animation: drift3 13s ease-in-out infinite alternate;
-             background: radial-gradient(circle, rgba(255, 255, 255, .05) 0%, rgba(255, 255, 255, 0) 65%); }
+             background: radial-gradient(circle, rgba(255, 255, 255, .06) 0%, rgba(255, 255, 255, 0) 65%); }
   @keyframes drift1 { to { transform: translate(140px, 180px) scale(1.15); } }
   @keyframes drift2 { to { transform: translate(-160px, -140px) scale(1.2); } }
   @keyframes drift3 { to { transform: translate(-120px, 90px) scale(.8); } }
+  .gridlines {
+    position: absolute; inset: 0; opacity: .5;
+    background-image: linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px);
+    background-size: 36px 36px;
+    -webkit-mask-image: radial-gradient(ellipse at 50% 20%, #000 10%, transparent 70%);
+            mask-image: radial-gradient(ellipse at 50% 20%, #000 10%, transparent 70%);
+    animation: gridmove 8s linear infinite;
+  }
+  @keyframes gridmove { to { background-position: 0 36px, 36px 0; } }
   .grain {
     position: absolute; inset: -50%; opacity: .07;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -60,13 +72,16 @@
   /* ===== Появление элементов ===== */
   .rise { opacity: 0; animation: rise .9s var(--spring) forwards; }
   @keyframes rise {
-    from { opacity: 0; transform: translateY(26px) scale(.94); filter: blur(10px); }
+    from { opacity: 0; transform: translateY(30px) scale(.92) rotateX(18deg); filter: blur(10px); }
     to   { opacity: 1; transform: none; filter: none; }
   }
 
   /* ===== Шапка ===== */
   .hero { text-align: center; margin: 8px 0 30px; }
-  .avatar-wrap { position: relative; width: 104px; height: 104px; margin: 0 auto 16px; }
+  .avatar-wrap {
+    position: relative; width: 104px; height: 104px; margin: 0 auto 18px;
+    translate: calc(var(--gx) * 8px) calc(var(--gy) * 8px);
+  }
   .avatar-wrap::before {  /* вращающееся кольцо */
     content: ""; position: absolute; inset: -4px; border-radius: 50%;
     background: conic-gradient(from var(--angle), var(--red), #fff, var(--red-deep), var(--red));
@@ -79,6 +94,14 @@
   }
   @keyframes spin { to { --angle: 360deg; } }
   @keyframes breathe { 50% { opacity: .35; transform: scale(.88); } }
+  .orbit { position: absolute; inset: -16px; border-radius: 50%; animation: orbit 7s linear infinite; pointer-events: none; }
+  .orbit.o2 { inset: -24px; animation-duration: 11s; animation-direction: reverse; }
+  .orbit::before {
+    content: ""; position: absolute; top: 50%; left: -3px; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--red); box-shadow: 0 0 12px var(--red);
+  }
+  .orbit.o2::before { width: 5px; height: 5px; left: auto; right: -2px; background: #fff; box-shadow: 0 0 10px #fff; }
+  @keyframes orbit { to { transform: rotate(360deg); } }
   .avatar {
     position: relative; width: 100%; height: 100%; border-radius: 50%;
     background: var(--card); border: 3px solid var(--bg);
@@ -88,7 +111,7 @@
   .avatar img { width: 100%; height: 100%; object-fit: cover; }
   .avatar svg { width: 44px; height: 44px; }
   h1 {
-    font-family: var(--display); font-size: 26px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px;
+    font-family: var(--display); font-size: 28px; font-weight: 900; letter-spacing: -.02em; margin-bottom: 8px;
     background: linear-gradient(100deg, #fff 35%, #ff6b6b 50%, #fff 65%) 0 0 / 250% 100%;
     -webkit-background-clip: text; background-clip: text; color: transparent;
     animation: shine 5s ease-in-out infinite;
@@ -96,42 +119,82 @@
   @keyframes shine { 0%, 30% { background-position: 100% 0; } 70%, 100% { background-position: 0 0; } }
   .sub { color: var(--hint); font-size: 15px; line-height: 1.4; max-width: 320px; margin: 0 auto; }
 
-  /* ===== Сетка карточек ===== */
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .cell { perspective: 800px; }
-  .cell.wide { grid-column: span 2; }
+  /* ===== Бенто-сетка ===== */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(150px, auto); gap: 12px; }
+  .cell { perspective: 900px; }
+  .cell.wide { grid-column: span 2; grid-auto-rows: auto; }
+  .cell.tall { grid-row: span 2; }
 
   .card {
-    position: relative; height: 100%; border-radius: 22px; padding: 16px 16px 58px;
-    background: linear-gradient(160deg, #161616 0%, var(--card) 60%);
-    border: 1px solid var(--border); overflow: hidden; cursor: pointer;
-    transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--s, 1));
-    transition: transform .6s var(--spring), border-color .3s;
+    position: relative; height: 100%; border-radius: 24px; padding: 16px;
+    display: flex; flex-direction: column;
+    background: linear-gradient(160deg, #171717 0%, var(--card) 55%, #070707 100%);
+    border: 1px solid var(--border); overflow: hidden; cursor: pointer; isolation: isolate;
+    transform: rotateX(calc(var(--rx, 0deg) + var(--gy) * -5deg)) rotateY(calc(var(--ry, 0deg) + var(--gx) * 7deg)) scale(var(--s, 1));
+    transition: transform .6s var(--spring), border-color .3s, opacity .3s;
     animation: float 6s ease-in-out infinite; animation-delay: var(--fd, 0s);
   }
-  .card.touch { transition: transform .12s ease-out, border-color .3s; --s: .97; border-color: #3a3a3a; }
+  .card.touch { transition: transform .12s ease-out, border-color .3s; --s: .97; border-color: #333; }
+  .card.lift { --s: 1.04; opacity: .4; }
   @keyframes float { 50% { translate: 0 -6px; } }
-  /* блик, который бежит за пальцем */
-  .card::after {
-    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-    background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, .14), transparent 60%);
-    opacity: 0; transition: opacity .3s;
+
+  /* огонёк, который бегает по рамке */
+  .card::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 2;
+    background: conic-gradient(from var(--angle), transparent 0 72%, rgba(255, 42, 42, .9) 86%, #fff 90%, transparent 96%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: spin 7s linear infinite; animation-delay: var(--fd, 0s);
   }
-  .card.touch::after { opacity: 1; }
+  /* блик за пальцем и от наклона телефона */
+  .card::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
+    background: radial-gradient(240px circle at var(--mx, calc(50% + var(--gx) * 60%)) var(--my, calc(30% + var(--gy) * 60%)),
+                rgba(255, 255, 255, .09), transparent 60%);
+    transition: opacity .3s;
+  }
+  .card.touch::after { background: radial-gradient(240px circle at var(--mx) var(--my), rgba(255, 255, 255, .16), transparent 60%); }
+
+  /* водяной знак — огромная иконка на фоне */
+  .mark {
+    position: absolute; right: -28px; bottom: -28px; width: 130px; height: 130px; z-index: -1;
+    color: #fff; opacity: .045; rotate: -14deg;
+    translate: calc(var(--gx) * -10px) calc(var(--gy) * -10px);
+    transition: opacity .4s, color .4s, scale .6s var(--spring);
+  }
+  .mark svg { width: 100%; height: 100%; animation: markspin 24s linear infinite; }
+  .mark svg.i { stroke-width: 1.2; }
+  @keyframes markspin { to { rotate: 360deg; } }
+  .card.touch .mark { opacity: .16; color: var(--red); scale: 1.15; }
+  .tall .mark { width: 190px; height: 190px; right: -40px; bottom: -30px; }
+
+  /* контурный номер */
+  .num {
+    position: absolute; top: 12px; right: 14px; font: 900 34px/1 var(--display); letter-spacing: -.04em;
+    color: transparent; -webkit-text-stroke: 1px #2b2b2b; transition: -webkit-text-stroke-color .3s, translate .5s var(--spring);
+  }
+  .card.touch .num { -webkit-text-stroke-color: var(--red); translate: 0 -3px; }
+  .tall .num { font-size: 54px; }
 
   .icon {
-    width: 44px; height: 44px; border-radius: 14px; margin-bottom: 14px;
-    background: #171717; border: 1px solid #262626;
+    width: 46px; height: 46px; border-radius: 15px; margin-bottom: 14px; flex-shrink: 0;
+    background: #161616; border: 1px solid #272727;
     display: flex; align-items: center; justify-content: center; font-size: 22px;
-    transition: background .3s, border-color .3s, transform .5s var(--spring);
+    transition: background .3s, border-color .3s, transform .5s var(--spring), box-shadow .3s;
   }
   .icon svg { width: 22px; height: 22px; animation: bob 3.2s ease-in-out infinite; animation-delay: var(--fd, 0s); }
   @keyframes bob { 50% { transform: translateY(-2px) rotate(-6deg); } }
-  .card.touch .icon { background: var(--red); border-color: var(--red); transform: scale(1.08) rotate(-4deg); }
+  .card.touch .icon { background: var(--red); border-color: var(--red); transform: scale(1.1) rotate(-6deg); box-shadow: 0 8px 24px -6px var(--red); }
   svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
+  .txt { margin-top: auto; padding-right: 40px; }
   .card h3 { font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 5px; }
   .card p { font-size: 13px; color: var(--hint); line-height: 1.35; }
+  .tall h3 { font-size: 20px; line-height: 1.1; }
+  .tall .icon { width: 56px; height: 56px; border-radius: 18px; }
+  .tall .icon svg { width: 28px; height: 28px; }
+
   .go {
     position: absolute; right: 12px; bottom: 12px;
     width: 36px; height: 36px; border-radius: 50%; border: none; pointer-events: none;
@@ -141,15 +204,17 @@
   }
   .go svg { width: 18px; height: 18px; animation: nudge 2.4s ease-in-out infinite; }
   @keyframes nudge { 0%, 70%, 100% { transform: none; } 80% { transform: translate(2px, -2px); } }
-  .card.touch .go { background: var(--red); color: #fff; transform: rotate(45deg) scale(1.1); }
+  .card.touch .go { background: var(--red); color: #fff; transform: rotate(45deg) scale(1.12); }
 
   /* широкая обычная карточка — в строку */
-  .wide .card:not(.main) { display: flex; align-items: center; gap: 14px; padding: 16px 64px 16px 16px; }
-  .wide .card:not(.main) .icon { margin: 0; flex-shrink: 0; }
+  .wide .card:not(.main) { flex-direction: row; align-items: center; gap: 14px; padding: 16px 64px 16px 16px; }
+  .wide .card:not(.main) .icon { margin: 0; }
+  .wide .card:not(.main) .txt { margin: 0; padding: 0; }
   .wide .card:not(.main) .go { top: 50%; bottom: auto; margin-top: -18px; }
+  .wide .card:not(.main) .num { top: auto; bottom: 10px; right: 60px; font-size: 26px; }
 
   /* ===== Главная карточка (с ссылкой) ===== */
-  .main-wrap { position: relative; border-radius: 26px; padding: 2px; }
+  .main-wrap { position: relative; border-radius: 28px; padding: 2px; }
   .main-wrap::before {  /* бегущая рамка */
     content: ""; position: absolute; inset: 0; border-radius: inherit;
     background: conic-gradient(from var(--angle), var(--red), #fff 12%, var(--red) 25%, var(--red-deep) 60%, var(--red));
@@ -157,82 +222,98 @@
   }
   .main-wrap::after {   /* дышащее свечение */
     content: ""; position: absolute; inset: 8px; border-radius: inherit; z-index: -1;
-    background: var(--red); filter: blur(26px);
+    background: var(--red); filter: blur(28px);
     animation: glow 2.8s ease-in-out infinite;
   }
-  @keyframes glow { 0%, 100% { opacity: .45; transform: scale(.96); } 50% { opacity: .9; transform: scale(1.03); } }
+  @keyframes glow { 0%, 100% { opacity: .45; transform: scale(.96); } 50% { opacity: .95; transform: scale(1.04); } }
   .card.main {
-    border: none; border-radius: 24px; padding: 22px 20px 20px;
-    background: radial-gradient(120% 140% at 0% 0%, #ff4d4d 0%, var(--red) 35%, var(--red-deep) 100%);
+    border: none; border-radius: 26px; padding: 0 0 18px;
+    background: radial-gradient(120% 140% at calc(0% + var(--gx) * 30%) 0%, #ff5252 0%, var(--red) 35%, var(--red-deep) 100%);
     animation: none;
   }
   .card.main::before {  /* блеск, пробегающий по кнопке */
-    content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 45%; pointer-events: none;
-    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent);
+    -webkit-mask: none; mask: none; padding: 0; inset: 0 auto 0 -60%; width: 45%; border-radius: 0; z-index: 3;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .4), transparent);
     transform: skewX(-20deg); animation: sweep 3.6s ease-in-out infinite;
   }
   @keyframes sweep { 0%, 55% { left: -60%; } 100% { left: 130%; } }
-  .card.main .row { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
-  .card.main .icon { margin: 0; width: 52px; height: 52px; border-radius: 16px; background: #000; border-color: #000; color: #fff; }
-  .card.main .icon svg { width: 26px; height: 26px; }
-  .card.main h3 { font-size: 30px; font-weight: 800; letter-spacing: -.03em; line-height: 1; margin: 0; }
-  .card.main p { color: rgba(255, 255, 255, .82); font-size: 14px; margin-top: 6px; }
+  .marquee {
+    overflow: hidden; background: #000; padding: 7px 0; margin-bottom: 16px; position: relative; z-index: 2;
+    font: 800 11px/1 var(--display); letter-spacing: .14em; white-space: nowrap;
+  }
+  .marquee span { display: inline-block; padding-right: 0; animation: marquee 9s linear infinite; }
+  .marquee b { color: var(--red); font-weight: 800; padding: 0 10px; }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+  .card.main .row { display: flex; align-items: center; gap: 14px; margin: 0 18px 16px; position: relative; z-index: 2; }
+  .card.main .icon { margin: 0; width: 58px; height: 58px; border-radius: 18px; background: #000; border-color: #000; color: #fff; }
+  .card.main .icon svg { width: 28px; height: 28px; animation: shake 4s ease-in-out infinite; }
+  @keyframes shake { 0%, 84%, 100% { transform: none; } 87% { transform: rotate(-12deg) scale(1.1); } 90% { transform: rotate(10deg) scale(1.1); } 93% { transform: rotate(-6deg); } }
+  .card.main h3 { font-size: 34px; font-weight: 900; letter-spacing: -.035em; line-height: 1; margin: 0; }
+  .card.main p { color: rgba(255, 255, 255, .85); font-size: 14px; margin-top: 6px; }
+  .card.main .mark { opacity: .12; color: #000; width: 170px; height: 170px; right: -30px; bottom: -40px; z-index: 0; }
   .card.main.touch .icon { background: #fff; color: var(--red); border-color: #fff; }
   .cta {
-    position: relative; display: flex; align-items: center; justify-content: space-between;
-    width: 100%; padding: 14px 14px 14px 20px; border-radius: 16px; border: none;
-    background: #000; color: #fff; font: 600 16px "Inter", sans-serif; pointer-events: none;
+    position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+    margin: 0 18px; padding: 14px 14px 14px 20px; border-radius: 18px;
+    background: #000; color: #fff; font: 600 16px "Inter", sans-serif;
   }
   .cta .arr {
-    width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #000;
-    display: flex; align-items: center; justify-content: center; transition: transform .5s var(--spring);
+    width: 36px; height: 36px; border-radius: 50%; background: #fff; color: #000;
+    display: flex; align-items: center; justify-content: center; transition: transform .5s var(--spring), background .3s, color .3s;
   }
   .cta .arr svg { width: 18px; height: 18px; animation: nudge 2.4s ease-in-out infinite; }
-  .card.main.touch .cta .arr { transform: rotate(45deg) scale(1.12); }
+  .card.main.touch .cta .arr { transform: rotate(45deg) scale(1.15); background: var(--red); color: #fff; }
 
-  /* волна от касания */
+  /* волна от касания и искры */
   .ripple {
-    position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%;
-    background: rgba(255, 255, 255, .35); pointer-events: none;
+    position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; z-index: 4;
+    background: rgba(255, 255, 255, .3); pointer-events: none;
     animation: ripple .7s ease-out forwards;
   }
   @keyframes ripple { to { transform: scale(28); opacity: 0; } }
+  .spark { position: fixed; z-index: 50; pointer-events: none; border-radius: 2px; }
 
   /* ===== Всплывающее окно с подробностями ===== */
   .overlay {
     position: fixed; inset: 0; background: rgba(0, 0, 0, .6); z-index: 10;
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
     opacity: 0; pointer-events: none; transition: opacity .35s;
   }
   .overlay.show { opacity: 1; pointer-events: auto; }
   .sheet {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 11;
-    background: linear-gradient(180deg, #141414, #0a0a0a); border-top: 1px solid #262626;
-    border-radius: 28px 28px 0 0; padding: 14px 20px 32px; max-height: 82vh; overflow-y: auto;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; overflow: hidden auto;
+    background: linear-gradient(180deg, #151515, #0a0a0a); border-top: 1px solid #2a2a2a;
+    border-radius: 30px 30px 0 0; padding: 14px 20px 32px; max-height: 82vh;
     transform: translateY(105%); transition: transform .55s var(--spring);
   }
   .sheet.show { transform: translateY(var(--drag, 0px)); }
   .sheet.dragging { transition: none; }
+  .sheet .mark { position: absolute; right: -40px; top: -20px; bottom: auto; width: 220px; height: 220px; opacity: .05; z-index: 0; }
   .grab { width: 40px; height: 5px; border-radius: 3px; background: #333; margin: 0 auto 18px; }
-  .sheet > :not(.grab):not(.close) { opacity: 0; transform: translateY(14px); transition: opacity .4s, transform .5s var(--spring); }
-  .sheet.show > :not(.grab):not(.close) { opacity: 1; transform: none; }
-  .sheet.show > :nth-child(3) { transition-delay: .08s; }
-  .sheet.show > :nth-child(4) { transition-delay: .14s; }
-  .sheet.show > :nth-child(5) { transition-delay: .2s; }
-  .sheet.show > :nth-child(6) { transition-delay: .26s; }
-  .sheet .icon { width: 58px; height: 58px; border-radius: 18px; margin-bottom: 16px; font-size: 28px; background: var(--red); border-color: var(--red); }
+  .sheet > .anim { position: relative; opacity: 0; transform: translateY(16px); transition: opacity .4s, transform .55s var(--spring); }
+  .sheet.show > .anim { opacity: 1; transform: none; }
+  .sheet.show > .anim { transition-delay: var(--d, 0s); }
+  .sheet .icon { width: 60px; height: 60px; border-radius: 19px; margin-bottom: 16px; font-size: 28px; background: var(--red); border-color: var(--red); box-shadow: 0 12px 32px -8px var(--red); }
+  .sheet.show .icon { animation: pop .7s var(--spring) .1s both; }
+  @keyframes pop { from { transform: scale(.3) rotate(-30deg); } }
   .sheet .icon svg { width: 28px; height: 28px; }
-  .sheet h2 { font-family: var(--display); font-size: 24px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 12px; }
+  .sheet h2 { font-family: var(--display); font-size: 26px; font-weight: 900; letter-spacing: -.02em; margin-bottom: 12px; }
   .sheet .full { font-size: 16px; line-height: 1.55; color: #d6d6d6; white-space: pre-line; margin-bottom: 24px; }
   .sheet-cta {
-    width: 100%; padding: 16px; border: none; border-radius: 16px; cursor: pointer;
+    position: relative; overflow: hidden;
+    width: 100%; padding: 17px; border: none; border-radius: 18px; cursor: pointer;
     background: var(--red); color: #fff; font: 600 16px "Inter", sans-serif;
-    box-shadow: 0 10px 30px -10px rgba(255, 42, 42, .7);
+    box-shadow: 0 10px 30px -10px rgba(255, 42, 42, .8);
     transition: transform .4s var(--spring);
   }
-  .sheet-cta:active { transform: scale(.97); }
+  .sheet-cta::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent);
+    transform: skewX(-20deg); animation: sweep 3s ease-in-out infinite;
+  }
+  .sheet-cta:active { transform: scale(.96); }
   .close {
-    position: absolute; top: 16px; right: 16px; width: 34px; height: 34px;
+    position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; z-index: 2;
     border-radius: 50%; border: 1px solid #2a2a2a; background: #000; color: #fff;
     display: flex; align-items: center; justify-content: center;
     transition: transform .4s var(--spring), background .3s;
@@ -248,10 +329,15 @@
 </head>
 <body>
 
-  <div class="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="grain"></div></div>
+  <div class="bg"><div class="bg-layer">
+    <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="gridlines"></div>
+  </div><div class="grain"></div></div>
 
   <div class="hero">
-    <div class="avatar-wrap rise"><div class="avatar" id="avatar"></div></div>
+    <div class="avatar-wrap rise">
+      <div class="orbit"></div><div class="orbit o2"></div>
+      <div class="avatar" id="avatar"></div>
+    </div>
     <h1 id="name" class="rise" style="animation-delay:.08s"></h1>
     <p class="sub rise" id="about" style="animation-delay:.16s"></p>
   </div>
@@ -260,12 +346,13 @@
 
   <div class="overlay" id="overlay"></div>
   <div class="sheet" id="sheet">
+    <div class="mark" id="sheetMark"></div>
     <div class="grab"></div>
     <button class="close" id="closeBtn"></button>
-    <div class="icon" id="sheetIcon"></div>
-    <h2 id="sheetTitle"></h2>
-    <div class="full" id="sheetText"></div>
-    <button class="sheet-cta" id="sheetCta">Написать мне</button>
+    <div class="icon anim" id="sheetIcon"></div>
+    <h2 class="anim" id="sheetTitle" style="--d:.08s"></h2>
+    <div class="full anim" id="sheetText" style="--d:.14s"></div>
+    <button class="sheet-cta anim" id="sheetCta" style="--d:.2s">Написать мне</button>
   </div>
 
 <script>
@@ -275,6 +362,7 @@
     tg.setHeaderColor("#000000");
     tg.setBackgroundColor("#000000");
   }
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Линейные иконки (Lucide, ISC). Эмодзи из data.json подменяются на них;
   // можно также писать название иконки, например "target".
@@ -308,10 +396,13 @@
   function svg(name) {
     return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>';
   }
+  function iconName(value) {
+    const v = (value || "").replace(/️/g, "").trim();
+    return ICONS[v] ? v : EMOJI[v];
+  }
   // Ставит SVG-иконку, если знаем её, иначе оставляет исходный эмодзи/текст
   function setIcon(el, value) {
-    const v = (value || "").replace(/️/g, "").trim();
-    const name = ICONS[v] ? v : EMOJI[v];
+    const name = iconName(value);
     if (name) el.innerHTML = svg(name);
     else el.textContent = value || "";
   }
@@ -337,20 +428,54 @@
     else tg.HapticFeedback.impactOccurred(kind || "light");
   }
 
+  // Текст «расшифровывается» из случайных символов
+  const GLYPHS = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ#%&$@*+=?";
+  function scramble(el, text, delay) {
+    if (calm || !text) { el.textContent = text; return; }
+    const len = text.length, total = 18 + len * 1.4;
+    let frame = 0;
+    el.textContent = text.replace(/\S/g, " ");
+    setTimeout(function tick() {
+      const done = Math.floor((frame / total) * len);
+      el.textContent = text.split("").map((ch, i) =>
+        i < done || ch === " " ? ch : GLYPHS[Math.floor(Math.random() * GLYPHS.length)]).join("");
+      if (++frame <= total) requestAnimationFrame(tick); else el.textContent = text;
+    }, delay * 1000);
+  }
+
+  // Взрыв искр из точки касания
+  function burst(x, y) {
+    if (calm) return;
+    const colors = ["#ff2a2a", "#ffffff", "#ff2a2a", "#000000", "#ff6b6b"];
+    for (let i = 0; i < 26; i++) {
+      const s = make("div", "spark"), size = 4 + Math.random() * 7;
+      Object.assign(s.style, {
+        left: x + "px", top: y + "px", width: size + "px", height: size + "px",
+        background: colors[i % colors.length], borderRadius: Math.random() > .5 ? "50%" : "2px",
+        border: "1px solid rgba(255,255,255,.4)",
+      });
+      document.body.appendChild(s);
+      const a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 110;
+      s.animate([
+        { transform: "translate(-50%,-50%) scale(1) rotate(0)", opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(a) * d}px), calc(-50% + ${Math.sin(a) * d - 30}px)) scale(.2) rotate(${Math.random() * 540}deg)`, opacity: 0 },
+      ], { duration: 650 + Math.random() * 350, easing: "cubic-bezier(.15,.8,.3,1)" }).onfinish = () => s.remove();
+    }
+  }
+
   // Наклон карточки за пальцем, блик и волна от касания
   function interactive(card, onTap) {
     let rect;
     const move = e => {
       const x = (e.clientX - rect.left) / rect.width, y = (e.clientY - rect.top) / rect.height;
-      card.style.setProperty("--ry", ((x - .5) * 14) + "deg");
-      card.style.setProperty("--rx", ((.5 - y) * 14) + "deg");
+      card.style.setProperty("--ry", ((x - .5) * 16) + "deg");
+      card.style.setProperty("--rx", ((.5 - y) * 16) + "deg");
       card.style.setProperty("--mx", (x * 100) + "%");
       card.style.setProperty("--my", (y * 100) + "%");
     };
     const reset = () => {
       card.classList.remove("touch");
-      card.style.setProperty("--rx", "0deg");
-      card.style.setProperty("--ry", "0deg");
+      ["--rx", "--ry", "--mx", "--my"].forEach(p => card.style.removeProperty(p));
     };
     card.addEventListener("pointerdown", e => {
       rect = card.getBoundingClientRect();
@@ -363,8 +488,34 @@
     card.addEventListener("pointerup", reset);
     card.addEventListener("pointerleave", reset);
     card.addEventListener("pointercancel", reset);
-    card.addEventListener("click", onTap);
+    card.addEventListener("click", e => onTap(e));
   }
+
+  // Параллакс от наклона телефона
+  (function tiltWithPhone() {
+    if (calm) return;
+    let base = null, tx = 0, ty = 0, cx = 0, cy = 0;
+    const feed = (beta, gamma) => {
+      if (beta == null || gamma == null) return;
+      if (!base) base = { beta, gamma };
+      tx = Math.max(-1, Math.min(1, (gamma - base.gamma) / 25));
+      ty = Math.max(-1, Math.min(1, (beta - base.beta) / 25));
+    };
+    if (tg && tg.isVersionAtLeast && tg.isVersionAtLeast("8.0") && tg.DeviceOrientation) {
+      tg.onEvent("deviceOrientationChanged", () =>
+        feed(tg.DeviceOrientation.beta * 57.3, tg.DeviceOrientation.gamma * 57.3));
+      try { tg.DeviceOrientation.start({ refresh_rate: 50 }); } catch (e) {}
+    } else {
+      addEventListener("deviceorientation", e => feed(e.beta, e.gamma));
+    }
+    const root = document.documentElement.style;
+    (function loop() {
+      cx += (tx - cx) * .08; cy += (ty - cy) * .08;
+      root.setProperty("--gx", cx.toFixed(3));
+      root.setProperty("--gy", cy.toFixed(3));
+      requestAnimationFrame(loop);
+    })();
+  })();
 
   const FALLBACK = { name: "", about: "", contact: "", avatar: "🙂", cards: [] };
   let CONTACT = "";
@@ -376,7 +527,7 @@
 
   function render(D) {
     CONTACT = D.contact;
-    document.getElementById("name").textContent = D.name;
+    scramble(document.getElementById("name"), D.name, .15);
     document.getElementById("about").textContent = D.about;
 
     const av = document.getElementById("avatar");
@@ -388,38 +539,51 @@
       setIcon(av, D.avatar);
     }
 
-    // Карточка со ссылкой — главная кнопка во всю ширину, остальные — в сетку 2 колонки
+    // Карточка со ссылкой — главная кнопка во всю ширину, остальные — бенто-сетка:
+    // при трёх обычных первая высокая, при нечётном числе последняя широкая
     const grid = document.getElementById("grid");
     const regular = D.cards.filter(c => !c.link).length;
     let n = 0;
     D.cards.forEach((c, i) => {
       const cell = make("div", "cell rise");
-      cell.style.animationDelay = (.25 + i * .09) + "s";
+      const delay = .25 + i * .1;
+      cell.style.animationDelay = delay + "s";
       const card = make("div", "card");
-      card.style.setProperty("--fd", (-i * 1.3) + "s");
+      card.style.setProperty("--fd", (-i * 1.7) + "s");
       const icon = make("div", "icon"); setIcon(icon, c.icon);
+      const mark = make("div", "mark"); if (iconName(c.icon)) mark.innerHTML = svg(iconName(c.icon));
+      const h3 = make("h3");
+      scramble(h3, c.title, delay + .2);
 
       if (c.link) {
         cell.classList.add("wide");
         card.classList.add("main");
+        const mq = make("div", "marquee"), line = make("span");
+        const word = (c.title || "").toUpperCase();
+        line.innerHTML = Array(12).fill(0).map(() => word.replace(/[<&]/g, "") + "<b>✦</b>").join("");
+        mq.append(line);
         const row = make("div", "row"), txt = make("div");
-        txt.append(make("h3", "", c.title), make("p", "", c.short));
+        txt.append(h3, make("p", "", c.short));
         row.append(icon, txt);
         const cta = make("div", "cta");
         cta.append(make("span", "", "Написать @" + c.link.replace(/^@/, "").replace(/^https?:\/\/t\.me\//, "")));
         const arr = make("span", "arr"); arr.innerHTML = svg("arrow"); cta.append(arr);
-        card.append(row, cta);
+        card.append(mark, mq, row, cta);
         const wrap = make("div", "main-wrap"); wrap.append(card); cell.append(wrap);
-        interactive(card, () => { haptic("success"); setTimeout(() => openLink(linkUrl(c.link)), 180); });
+        interactive(card, e => {
+          haptic("success"); burst(e.clientX, e.clientY);
+          setTimeout(() => openLink(linkUrl(c.link)), 420);
+        });
       } else {
         n++;
-        if (regular % 2 && n === regular) cell.classList.add("wide");
-        const txt = make("div");
-        txt.append(make("h3", "", c.title), make("p", "", c.short));
+        if (regular === 3 && n === 1) cell.classList.add("tall");
+        else if (regular !== 3 && regular % 2 && n === regular) cell.classList.add("wide");
+        const txt = make("div", "txt");
+        txt.append(h3, make("p", "", c.short));
         const go = make("div", "go"); go.innerHTML = svg("arrow");
-        card.append(icon, txt, go);
+        card.append(mark, make("div", "num", String(n).padStart(2, "0")), icon, txt, go);
         cell.append(card);
-        interactive(card, () => openSheet(c));
+        interactive(card, () => openSheet(c, card));
       }
       grid.appendChild(cell);
     });
@@ -427,16 +591,23 @@
 
   const overlay = document.getElementById("overlay");
   const sheet = document.getElementById("sheet");
+  let lifted = null;
   document.getElementById("closeBtn").innerHTML = svg("close");
-  document.getElementById("sheetCta").onclick = () => { haptic("medium"); openLink(linkUrl(CONTACT)); };
+  document.getElementById("sheetCta").onclick = e => {
+    haptic("success"); burst(e.clientX, e.clientY);
+    setTimeout(() => openLink(linkUrl(CONTACT)), 380);
+  };
 
-  function openSheet(c) {
+  function openSheet(c, card) {
     setIcon(document.getElementById("sheetIcon"), c.icon);
-    document.getElementById("sheetTitle").textContent = c.title;
+    const name = iconName(c.icon);
+    document.getElementById("sheetMark").innerHTML = name ? svg(name) : "";
+    scramble(document.getElementById("sheetTitle"), c.title, .1);
     document.getElementById("sheetText").textContent = c.full;
     document.getElementById("sheetCta").style.display = CONTACT ? "" : "none";
     sheet.scrollTop = 0;
     sheet.style.setProperty("--drag", "0px");
+    lifted = card; card.classList.add("lift");
     overlay.classList.add("show");
     sheet.classList.add("show");
     haptic("medium");
@@ -445,6 +616,7 @@
     overlay.classList.remove("show");
     sheet.classList.remove("show");
     sheet.style.removeProperty("--drag");
+    if (lifted) { lifted.classList.remove("lift"); lifted = null; }
   }
   overlay.onclick = closeSheet;
   document.getElementById("closeBtn").onclick = closeSheet;
