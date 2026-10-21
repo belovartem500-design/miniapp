@@ -164,6 +164,9 @@
   .card.on .reveal.hand { opacity: 1; }
   .card.on .reveal:not(.hand) { opacity: 0; }
 
+  /* тихий полутон из угла карточки (canvas) */
+  .ht { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+
   /* рамка, которая загорается там, где палец */
   .card::before {
     content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 3;
@@ -294,7 +297,7 @@
   .main-top { position: relative; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .main-txt { flex: 1; min-width: 0; }
   .tag {
-    display: inline-flex; align-items: center; gap: 7px; margin-bottom: 18px;
+    display: flex; width: max-content; align-items: center; gap: 7px; margin-bottom: 18px;
     font: 500 11px/1 "Inter", sans-serif; letter-spacing: .18em; text-transform: uppercase; color: #ff8a8a;
   }
   .tag i { width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red);
@@ -730,6 +733,54 @@
     draw(0);
   })();
 
+  // Тихий полутон на карточках: веер точек из правого верхнего угла,
+  // медленно «дышит» и чуть ярче при наведении
+  const HT = [];
+  function halftone(card, cv, n) {
+    const item = { card, cv, ctx: cv.getContext("2d"), dots: [], heat: 0, shift: n * 1.9 };
+    const build = () => {
+      const w = card.clientWidth, h = card.clientHeight, dpr = Math.min(devicePixelRatio || 1, 2);
+      if (!w || !h) return;
+      cv.width = w * dpr; cv.height = h * dpr;
+      item.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      item.w = w; item.h = h; item.dots = [];
+      const R = Math.min(w, h) * 1.25, STEP = 7;
+      for (let gy = -R; gy <= R; gy += STEP)
+        for (let gx = -R; gx <= R; gx += STEP) {
+          const x = (gx - gy) * .7071, y = (gx + gy) * .7071;  // сетка под 45°
+          if (x > 0 || y < 0) continue;                         // только внутрь карточки от угла
+          const r = Math.hypot(x, y), u = r / R;
+          if (u > 1) continue;
+          const size = 2.7 * Math.pow(1 - u, 1.4);
+          if (size > .2) item.dots.push({ x, y, r, u, size, ux: x / (r || 1), uy: y / (r || 1) });
+        }
+    };
+    build();
+    new ResizeObserver(build).observe(card);
+    HT.push(item);
+  }
+  (function htLoop(t) {
+    const ph0 = t / 6800 * Math.PI * 2;
+    for (const it of HT) {
+      const { ctx, w, h } = it;
+      if (!w) continue;
+      it.heat += ((it.card.classList.contains("on") ? 1 : 0) - it.heat) * .08;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#ff2a2a";
+      const ph = ph0 + it.shift;
+      for (const d of it.dots) {
+        const s = calm ? 0 : (1 - Math.cos(ph - d.u * 1.4)) / 2;
+        const k = s * s * (3 - 2 * s);
+        const off = k * (2.5 + 3.5 * it.heat) * (.3 + .7 * d.u);
+        ctx.globalAlpha = (.26 + .3 * it.heat) * (1 - .55 * d.u) * (1 - .3 * k);
+        ctx.beginPath();
+        ctx.arc(w + d.x + d.ux * off, d.y + d.uy * off, d.size * (1 - .25 * k), 0, 6.2832);
+        ctx.fill();
+      }
+    }
+    requestAnimationFrame(htLoop);
+  })(0);
+
   const FALLBACK = { name: "", about: "", contact: "", avatar: "🙂", cards: [] };
   let CONTACT = "";
 
@@ -765,11 +816,12 @@
       card.style.setProperty("--fd", (-i * 1.7) + "s");
       const icon = make("div", "icon"); setIcon(icon, c.icon);
       const h3 = make("h3", "", c.title);
-      card.append(make("div", "fog"), make("div", "reveal"), make("div", "reveal hand"));
+      card.append(make("div", "fog"));
 
       if (c.link) {
         cell.classList.add("wide");
         card.classList.add("main");
+        card.append(make("div", "reveal"), make("div", "reveal hand"));
         const elixir = make("div", "elixir");
         elixir.innerHTML = ELIXIR_SVG;
         const txt = make("div", "main-txt"), tag = make("div", "tag");
@@ -795,6 +847,7 @@
         txt.append(h3, make("p", "", c.short));
         const go = make("div", "go"); go.append(make("span", "", "Открыть"));
         go.insertAdjacentHTML("beforeend", svg("arrow"));
+        const ht = make("canvas", "ht"); card.prepend(ht); halftone(card, ht, n);
         card.append(make("div", "num", String(n).padStart(2, "0")), icon, txt, go);
         cell.append(card);
         interactive(card, () => setTimeout(() => openSheet(c, card), 160));
