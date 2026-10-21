@@ -105,46 +105,41 @@
   </div>
 
 <script>
-  // ===== ТУТ МЕНЯЕШЬ ТЕКСТЫ =====
-  const ME = {
-    name: "[Твоё имя]",
-    about: "[Одна строка о тебе и продукте]",
-    contact: "твой_ник_без_собачки",
-    avatar: "🙂",  // потом можно заменить на фото
-  };
-
-  const CARDS = [
-    { icon: "🎯", title: "Что это", short: "Коротко о продукте",
-      full: "[Подробно: что за продукт, в каком формате, сколько длится]" },
-    { icon: "👥", title: "Для кого", short: "Кому подойдёт",
-      full: "[Кому подойдёт и кому НЕ подойдёт]" },
-    { icon: "📦", title: "Что внутри", short: "Программа и материалы",
-      full: "[Модули, уроки, созвоны, бонусы]" },
-    { icon: "🏆", title: "Результаты", short: "Кейсы учеников",
-      full: "[2–3 реальных кейса с цифрами]" },
-    { icon: "👋", title: "Обо мне", short: "Кто я и почему мне можно доверять",
-      full: "[Твой опыт и результаты]" },
-    { icon: "💳", title: "Как попасть", short: "Стоимость и условия",
-      full: "[Цена, сроки набора, как оплатить]" },
-  ];
-  // ==============================
-
   const tg = window.Telegram && window.Telegram.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  document.getElementById("name").textContent = ME.name;
-  document.getElementById("about").textContent = ME.about;
-  document.getElementById("avatar").textContent = ME.avatar;
+  const FALLBACK = { name: "", about: "", contact: "", avatar: "🙂", cards: [] };
 
-  const grid = document.getElementById("grid");
-  CARDS.forEach((c, i) => {
-    const el = document.createElement("div");
-    el.className = "card";
-    el.style.animationDelay = (i * 0.07) + "s";
-    el.innerHTML = `<div class="icon">${c.icon}</div><h3>${c.title}</h3><p>${c.short}</p><button class="go">→</button>`;
-    el.onclick = () => openSheet(c);
-    grid.appendChild(el);
-  });
+  fetch("data.json?t=" + Date.now())
+    .then(r => r.ok ? r.json() : FALLBACK)
+    .catch(() => FALLBACK)
+    .then(render);
+
+  function render(D) {
+    document.getElementById("name").textContent = D.name;
+    document.getElementById("about").textContent = D.about;
+    document.getElementById("avatar").textContent = D.avatar;
+
+    const grid = document.getElementById("grid");
+    D.cards.forEach((c, i) => {
+      const el = document.createElement("div");
+      el.className = "card";
+      el.style.animationDelay = (i * 0.07) + "s";
+      const icon = document.createElement("div"); icon.className = "icon"; icon.textContent = c.icon;
+      const h = document.createElement("h3"); h.textContent = c.title;
+      const p = document.createElement("p"); p.textContent = c.short;
+      const go = document.createElement("button"); go.className = "go"; go.textContent = "→";
+      el.append(icon, h, p, go);
+      el.onclick = () => openSheet(c);
+      grid.appendChild(el);
+    });
+
+    document.getElementById("contactBtn").onclick = () => {
+      const url = "https://t.me/" + D.contact;
+      if (tg && tg.initData) tg.openTelegramLink(url);
+      else window.open(url, "_blank");
+    };
+  }
 
   const overlay = document.getElementById("overlay");
   const sheet = document.getElementById("sheet");
@@ -163,12 +158,6 @@
   }
   overlay.onclick = closeSheet;
   document.getElementById("closeBtn").onclick = closeSheet;
-
-  document.getElementById("contactBtn").onclick = () => {
-    const url = "https://t.me/" + ME.contact;
-    if (tg && tg.initData) tg.openTelegramLink(url);
-    else window.open(url, "_blank");
-  };
 </script>
 </body>
 </html>
