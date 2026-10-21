@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Мой продукт</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #0f1115);
+    --card: var(--tg-theme-secondary-bg-color, #1a1d24);
+    --text: var(--tg-theme-text-color, #ffffff);
+    --hint: var(--tg-theme-hint-color, #8b8f98);
+    --accent: var(--tg-theme-button-color, #3b82f6);
+    --accent-text: var(--tg-theme-button-text-color, #ffffff);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh; padding: 24px 16px 110px; overflow-x: hidden;
+  }
+
+  /* Шапка */
+  .hero { text-align: center; margin: 8px 0 28px; }
+  .avatar {
+    width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 14px;
+    background: var(--card); border: 3px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px; overflow: hidden;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+  .sub { color: var(--hint); font-size: 15px; line-height: 1.4; max-width: 320px; margin: 0 auto; }
+
+  /* Карточки, разбросанные по сторонам */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding-bottom: 30px; }
+  .card {
+    background: var(--card); border-radius: 20px; padding: 16px 16px 52px;
+    position: relative; cursor: pointer; transition: scale .15s;
+    animation: pop .4s ease both;
+  }
+  .card:nth-child(odd)  { rotate: -1.5deg; }
+  .card:nth-child(even) { rotate: 1.5deg; translate: 0 28px; }
+  .card:active { scale: .96; }
+  .card .icon { font-size: 32px; margin-bottom: 10px; }
+  .card h3 { font-size: 15px; margin-bottom: 4px; }
+  .card p { font-size: 13px; color: var(--hint); line-height: 1.35; }
+  .go {
+    position: absolute; right: 12px; bottom: 12px;
+    width: 34px; height: 34px; border-radius: 50%; border: none;
+    background: var(--accent); color: var(--accent-text);
+    font-size: 18px; display: flex; align-items: center; justify-content: center;
+  }
+  @keyframes pop { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  /* Всплывающее окно с подробностями */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 10;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 11;
+    background: var(--card); border-radius: 24px 24px 0 0;
+    padding: 28px 20px 36px; max-height: 80vh; overflow-y: auto;
+    transform: translateY(100%); transition: transform .3s ease;
+  }
+  .sheet.show { transform: none; }
+  .sheet .icon { font-size: 44px; margin-bottom: 12px; }
+  .sheet h2 { font-size: 22px; margin-bottom: 12px; }
+  .sheet .full { font-size: 16px; line-height: 1.5; white-space: pre-line; }
+  .close {
+    position: absolute; top: 14px; right: 14px; width: 32px; height: 32px;
+    border-radius: 50%; border: none; background: var(--bg); color: var(--text); font-size: 18px;
+  }
+
+  /* Кнопка связи внизу */
+  .contact {
+    position: fixed; left: 16px; right: 16px; bottom: 20px; z-index: 5;
+    padding: 16px; border: none; border-radius: 16px;
+    background: var(--accent); color: var(--accent-text);
+    font-size: 17px; font-weight: 600; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="avatar" id="avatar"></div>
+    <h1 id="name"></h1>
+    <p class="sub" id="about"></p>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <button class="contact" id="contactBtn">Связаться со мной</button>
+
+  <div class="overlay" id="overlay"></div>
+  <div class="sheet" id="sheet">
+    <button class="close" id="closeBtn">✕</button>
+    <div class="icon" id="sheetIcon"></div>
+    <h2 id="sheetTitle"></h2>
+    <div class="full" id="sheetText"></div>
+  </div>
+
+<script>
+  // ===== ТУТ МЕНЯЕШЬ ТЕКСТЫ =====
+  const ME = {
+    name: "[Твоё имя]",
+    about: "[Одна строка о тебе и продукте]",
+    contact: "твой_ник_без_собачки",
+    avatar: "🙂",  // потом можно заменить на фото
+  };
+
+  const CARDS = [
+    { icon: "🎯", title: "Что это", short: "Коротко о продукте",
+      full: "[Подробно: что за продукт, в каком формате, сколько длится]" },
+    { icon: "👥", title: "Для кого", short: "Кому подойдёт",
+      full: "[Кому подойдёт и кому НЕ подойдёт]" },
+    { icon: "📦", title: "Что внутри", short: "Программа и материалы",
+      full: "[Модули, уроки, созвоны, бонусы]" },
+    { icon: "🏆", title: "Результаты", short: "Кейсы учеников",
+      full: "[2–3 реальных кейса с цифрами]" },
+    { icon: "👋", title: "Обо мне", short: "Кто я и почему мне можно доверять",
+      full: "[Твой опыт и результаты]" },
+    { icon: "💳", title: "Как попасть", short: "Стоимость и условия",
+      full: "[Цена, сроки набора, как оплатить]" },
+  ];
+  // ==============================
+
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  document.getElementById("name").textContent = ME.name;
+  document.getElementById("about").textContent = ME.about;
+  document.getElementById("avatar").textContent = ME.avatar;
+
+  const grid = document.getElementById("grid");
+  CARDS.forEach((c, i) => {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.style.animationDelay = (i * 0.07) + "s";
+    el.innerHTML = `<div class="icon">${c.icon}</div><h3>${c.title}</h3><p>${c.short}</p><button class="go">→</button>`;
+    el.onclick = () => openSheet(c);
+    grid.appendChild(el);
+  });
+
+  const overlay = document.getElementById("overlay");
+  const sheet = document.getElementById("sheet");
+
+  function openSheet(c) {
+    document.getElementById("sheetIcon").textContent = c.icon;
+    document.getElementById("sheetTitle").textContent = c.title;
+    document.getElementById("sheetText").textContent = c.full;
+    overlay.classList.add("show");
+    sheet.classList.add("show");
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+  }
+  function closeSheet() {
+    overlay.classList.remove("show");
+    sheet.classList.remove("show");
+  }
+  overlay.onclick = closeSheet;
+  document.getElementById("closeBtn").onclick = closeSheet;
+
+  document.getElementById("contactBtn").onclick = () => {
+    const url = "https://t.me/" + ME.contact;
+    if (tg && tg.initData) tg.openTelegramLink(url);
+    else window.open(url, "_blank");
+  };
+</script>
+</body>
+</html>
