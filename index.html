@@ -418,12 +418,42 @@
   .foot a { color: #9a9a9a; text-decoration: none; font-size: 13px; }
   .foot a:active { color: #fff; }
   .sheet-cta {
-    position: relative; overflow: hidden;
+    position: sticky; bottom: 6px; overflow: hidden; z-index: 3;
     width: 100%; padding: 17px; border: none; border-radius: 18px; cursor: pointer;
     background: var(--red); color: #fff; font: 600 16px "Inter", sans-serif;
-    box-shadow: 0 10px 30px -10px rgba(255, 42, 42, .8);
+    box-shadow: 0 10px 30px -10px rgba(255, 42, 42, .8), 0 -18px 22px 4px #0b0b0b;
     transition: transform .4s var(--spring);
   }
+
+  /* карточка «перетекает» в окно (View Transitions) */
+  ::view-transition-group(morph) { animation-duration: .55s; animation-timing-function: cubic-bezier(.2, .9, .25, 1); }
+  ::view-transition-old(morph), ::view-transition-new(morph) { height: 100%; object-fit: cover; object-position: top; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .4s; }
+  .sheet.instant, .sheet.instant > .anim { transition: none !important; }
+  .card.gone { opacity: 0 !important; }
+
+  /* свет под пальцем на фоне */
+  .touchlight {
+    position: absolute; left: 0; top: 0; width: 340px; height: 340px; margin: -170px 0 0 -170px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 42, 42, .28), transparent 65%);
+    opacity: 0; transition: opacity .6s; will-change: transform;
+  }
+  .touchlight.show { opacity: 1; transition-duration: .2s; }
+
+  /* заготовки карточек, пока грузятся данные */
+  .skel {
+    border-radius: 24px; border: 1px solid #161616; min-height: 156px;
+    background: linear-gradient(100deg, #0a0a0a 30%, #161616 50%, #0a0a0a 70%) 0 0 / 300% 100%;
+    animation: skel 1.4s ease-in-out infinite;
+  }
+  .skel.tall { grid-row: span 2; }
+  .skel.wide { grid-column: span 2; min-height: 210px; }
+  @keyframes skel { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+  /* нажатие на аватарку */
+  .avatar { cursor: pointer; transition: transform .6s var(--spring); }
+  .avatar.boom { animation: boom .7s var(--spring); }
+  @keyframes boom { 30% { transform: scale(.86); } 60% { transform: scale(1.08); } }
   .sheet-cta::after {
     content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
     background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent);
@@ -449,7 +479,7 @@
 
   <div class="bg"><div class="bg-layer">
     <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="gridlines"></div>
-  </div><div class="grain"></div></div>
+  </div><div class="grain"></div><div class="touchlight" id="touchlight"></div></div>
 
   <div class="hero">
     <div class="avatar-wrap rise">
@@ -461,7 +491,9 @@
     <p class="sub rise" id="about" style="animation-delay:.16s"></p>
   </div>
 
-  <div class="grid" id="grid"></div>
+  <div class="grid" id="grid">
+    <div class="skel tall"></div><div class="skel"></div><div class="skel"></div><div class="skel wide"></div>
+  </div>
 
   <footer class="foot rise" style="animation-delay:.8s">
     <div class="foot-dots"></div>
@@ -738,6 +770,7 @@
   function slosh(card, liquid, surf) {
     const box = liquid.closest(".elixir");
     let angle = 0, vel = 0, energy = 0, lastX = null, push = 0;
+    const born = performance.now();
     let rotY = 0, rotX = 0, aimY = 0, aimX = 0;
     card.addEventListener("pointermove", e => {
       const r = card.getBoundingClientRect();
@@ -760,7 +793,11 @@
       angle = Math.max(-26, Math.min(26, angle));
       rotY += (aimY + gx * 25 - rotY) * .05;
       rotX += (aimX - gy * 10 - rotX) * .05;
-      liquid.style.transform = `rotate(${angle.toFixed(2)}deg)`;
+      // при открытии эликсир наливается снизу вверх
+      const f = calm ? 1 : Math.min(1, Math.max(0, (performance.now() - born - 700) / 2200));
+      const fill = 1 - Math.pow(1 - f, 3);
+      liquid.style.transform = `translateY(${((1 - fill) * 104).toFixed(1)}px) rotate(${angle.toFixed(2)}deg)`;
+      if (f < 1) energy = Math.max(energy, .5 * (1 - f));
       surf.style.transform = `scaleY(${(1 + energy * .9).toFixed(3)})`;
       box.style.setProperty("--bry", rotY.toFixed(2) + "deg");
       box.style.setProperty("--brx", rotX.toFixed(2) + "deg");
@@ -771,6 +808,11 @@
 
   // Полутоновый ореол: точки крупные у аватарки и мельчают к краю;
   // по кругу плавно разлетаются наружу и возвращаются
+  let haloKick = 0;
+  document.getElementById("avatar").addEventListener("click", e => {
+    haloKick = 1; haptic("heavy");
+    const av = e.currentTarget; av.classList.remove("boom"); void av.offsetWidth; av.classList.add("boom");
+  });
   (function halftoneHalo() {
     const cv = document.getElementById("halo"), ctx = cv.getContext("2d");
     const SIZE = 250, C = SIZE / 2, R0 = 54, R1 = 98, STEP = 6.2, PERIOD = 4600, SPREAD = 14;
@@ -796,13 +838,15 @@
         const k = s * s * (3 - 2 * s);
         // при открытии точки слетаются к аватарке издалека
         const it = calm ? 1 : Math.min(1, Math.max(0, (t - d.u * 350) / 1300)), ie = 1 - Math.pow(1 - it, 3);
-        const off = k * SPREAD * (.35 + .65 * d.u) * (1 + .3 * Math.sin(d.a * 3 + ph)) + (1 - ie) * (40 + 50 * d.u);
+        const off = k * SPREAD * (.35 + .65 * d.u) * (1 + .3 * Math.sin(d.a * 3 + ph)) + (1 - ie) * (40 + 50 * d.u)
+                  + haloKick * 34 * (.3 + .7 * d.u) * (1 + .4 * Math.sin(d.a * 5));
         const x = C + d.ux * (d.r + off), y = C + d.uy * (d.r + off);
         const rad = d.size * (1 - .4 * k);
         ctx.globalAlpha = Math.min(1, .35 + (1 - d.u) * .75) * (1 - .45 * k) * ie;
         ctx.fillStyle = d.u < .18 ? "#ff6a6a" : "#ff2a2a";
         ctx.beginPath(); ctx.arc(x, y, rad, 0, 6.2832); ctx.fill();
       }
+      haloKick *= .93;
       if (!calm) requestAnimationFrame(now => draw(now - T0));
     }
     if (calm) draw(PERIOD * 10); else requestAnimationFrame(now => draw(now - T0));
@@ -856,6 +900,22 @@
     requestAnimationFrame(htLoop);
   })(0);
 
+  // Мягкий красный свет на фоне под пальцем
+  (function touchLight() {
+    if (calm) return;
+    const el = document.getElementById("touchlight");
+    let x = innerWidth / 2, y = innerHeight / 3, tx = x, ty = y, hideT;
+    const aim = e => { tx = e.clientX; ty = e.clientY; el.classList.add("show"); clearTimeout(hideT); };
+    addEventListener("pointerdown", aim, { passive: true });
+    addEventListener("pointermove", e => { if (e.pointerType === "mouse" || e.buttons) aim(e); }, { passive: true });
+    addEventListener("pointerup", () => { hideT = setTimeout(() => el.classList.remove("show"), 400); }, { passive: true });
+    (function loop() {
+      x += (tx - x) * .14; y += (ty - y) * .14;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      requestAnimationFrame(loop);
+    })();
+  })();
+
   const FALLBACK = { name: "", about: "", contact: "", avatar: "🙂", cards: [] };
   let CONTACT = "";
 
@@ -892,6 +952,7 @@
     // Карточка со ссылкой — главная кнопка во всю ширину, остальные — бенто-сетка:
     // при трёх обычных первая высокая, при нечётном числе последняя широкая
     const grid = document.getElementById("grid");
+    grid.textContent = "";
     const regular = D.cards.filter(c => !c.link).length;
     let n = 0;
     D.cards.forEach((c, i) => {
@@ -951,7 +1012,49 @@
     setTimeout(() => openLink(linkUrl(CONTACT)), 380);
   };
 
+  const morph = !calm && !!document.startViewTransition;
+  function setSwipes(on) {
+    if (tg && tg.isVersionAtLeast && tg.isVersionAtLeast("7.7")) on ? tg.enableVerticalSwipes() : tg.disableVerticalSwipes();
+  }
+  // isOpen меняется сразу, busy — пока идёт превращение; лишние нажатия в это время игнорируем
+  let isOpen = false, busy = false;
+  function morphTo(update, done) {
+    busy = true;
+    sheet.classList.add("instant");
+    let ran = false;
+    const apply = () => { if (!ran) { ran = true; update(); } };
+    const vt = document.startViewTransition(apply);
+    vt.ready.catch(() => {});
+    let ended = false;
+    const end = () => { if (ended) return; ended = true; apply(); done(); sheet.classList.remove("instant"); busy = false; };
+    vt.finished.finally(end);
+    setTimeout(end, 1200);  // страховка, если браузер не завершит переход
+  }
   function openSheet(c, card) {
+    if (isOpen || busy) return;
+    isOpen = true;
+    if (!morph) return showSheet(c, card);
+    card.style.viewTransitionName = "morph";
+    morphTo(() => {
+      card.style.viewTransitionName = "";
+      sheet.style.viewTransitionName = "morph";
+      showSheet(c, card);
+      card.classList.add("gone");
+    }, () => { sheet.style.viewTransitionName = ""; });
+  }
+  function closeSheet() {
+    if (!isOpen || busy) return;
+    const card = lifted;
+    if (!morph || !card) return hideSheet();
+    isOpen = false;
+    sheet.style.viewTransitionName = "morph";
+    morphTo(() => {
+      sheet.style.viewTransitionName = "";
+      card.style.viewTransitionName = "morph";
+      hideSheet();
+    }, () => { card.style.viewTransitionName = ""; });
+  }
+  function showSheet(c, card) {
     setIcon(document.getElementById("sheetIcon"), c.icon);
     const name = iconName(c.icon);
     document.getElementById("sheetMark").innerHTML = name ? svg(name) : "";
@@ -971,14 +1074,17 @@
     lifted = card; card.classList.add("lift");
     overlay.classList.add("show");
     sheet.classList.add("show");
+    setSwipes(false);
     haptic("medium");
   }
-  function closeSheet() {
+  function hideSheet() {
+    isOpen = false;
     if (tg && tg.BackButton) { tg.BackButton.offClick(closeSheet); tg.BackButton.hide(); }
+    setSwipes(true);
     overlay.classList.remove("show");
     sheet.classList.remove("show");
     sheet.style.removeProperty("--drag");
-    if (lifted) { lifted.classList.remove("lift"); lifted = null; }
+    if (lifted) { lifted.classList.remove("lift", "gone"); lifted = null; }
   }
   overlay.onclick = closeSheet;
   document.getElementById("closeBtn").onclick = closeSheet;
@@ -989,15 +1095,18 @@
     if (sheet.scrollTop > 0) return;
     startY = e.touches[0].clientY; sheet.classList.add("dragging");
   }, { passive: true });
+  let armed = false;
   sheet.addEventListener("touchmove", e => {
     if (startY === null) return;
-    sheet.style.setProperty("--drag", Math.max(0, e.touches[0].clientY - startY) + "px");
+    const dy = Math.max(0, e.touches[0].clientY - startY);
+    sheet.style.setProperty("--drag", dy + "px");
+    if ((dy > 110) !== armed) { armed = dy > 110; haptic("light"); }
   }, { passive: true });
   sheet.addEventListener("touchend", e => {
     if (startY === null) return;
     const dy = e.changedTouches[0].clientY - startY;
-    startY = null; sheet.classList.remove("dragging");
-    if (dy > 110) closeSheet(); else sheet.style.setProperty("--drag", "0px");
+    startY = null; armed = false; sheet.classList.remove("dragging");
+    if (dy > 110) hideSheet(); else sheet.style.setProperty("--drag", "0px");
   });
 </script>
 </body>
