@@ -214,55 +214,54 @@
   .wide .card:not(.main) .num { top: auto; bottom: 10px; right: 60px; font-size: 26px; }
 
   /* ===== Главная карточка (с ссылкой) ===== */
-  .main-wrap { position: relative; border-radius: 28px; padding: 2px; }
-  .main-wrap::before {  /* бегущая рамка */
-    content: ""; position: absolute; inset: 0; border-radius: inherit;
-    background: conic-gradient(from var(--angle), var(--red), #fff 12%, var(--red) 25%, var(--red-deep) 60%, var(--red));
-    animation: spin 3.5s linear infinite;
+  .main-wrap { position: relative; }
+  .main-wrap::after {   /* мягкое свечение под карточкой */
+    content: ""; position: absolute; left: 10%; right: 10%; bottom: -14px; height: 60%; z-index: -1;
+    border-radius: 50%; background: var(--red); filter: blur(34px);
+    animation: glow 3.4s ease-in-out infinite;
   }
-  .main-wrap::after {   /* дышащее свечение */
-    content: ""; position: absolute; inset: 8px; border-radius: inherit; z-index: -1;
-    background: var(--red); filter: blur(28px);
-    animation: glow 2.8s ease-in-out infinite;
-  }
-  @keyframes glow { 0%, 100% { opacity: .45; transform: scale(.96); } 50% { opacity: .95; transform: scale(1.04); } }
+  @keyframes glow { 0%, 100% { opacity: .45; transform: scaleX(.92); } 50% { opacity: .8; transform: scaleX(1); } }
   .card.main {
-    border: none; border-radius: 26px; padding: 0 0 18px;
-    background: radial-gradient(120% 140% at calc(0% + var(--gx) * 30%) 0%, #ff5252 0%, var(--red) 35%, var(--red-deep) 100%);
+    border: none; border-radius: 28px; padding: 20px; min-height: 168px;
+    flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 16px;
+    background: linear-gradient(145deg, #ff3b3b 0%, #e60f0f 45%, #a80000 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 -1px 0 rgba(0, 0, 0, .25);
     animation: none;
   }
-  .card.main::before {  /* блеск, пробегающий по кнопке */
-    -webkit-mask: none; mask: none; padding: 0; inset: 0 auto 0 -60%; width: 45%; border-radius: 0; z-index: 3;
-    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .4), transparent);
-    transform: skewX(-20deg); animation: sweep 3.6s ease-in-out infinite;
+  .card.main::before {  /* медленно переливающийся свет внутри */
+    -webkit-mask: none; mask: none; padding: 0; z-index: 0;
+    background: radial-gradient(60% 90% at 20% 0%, rgba(255, 255, 255, .32), transparent 70%),
+                radial-gradient(50% 70% at 100% 100%, rgba(80, 0, 0, .55), transparent 70%);
+    background-size: 200% 200%; animation: liquid 9s ease-in-out infinite alternate;
   }
-  @keyframes sweep { 0%, 55% { left: -60%; } 100% { left: 130%; } }
-  .marquee {
-    overflow: hidden; background: #000; padding: 7px 0; margin-bottom: 16px; position: relative; z-index: 2;
-    font: 800 11px/1 var(--display); letter-spacing: .14em; white-space: nowrap;
+  @keyframes liquid { from { background-position: 0% 0%, 100% 100%; } to { background-position: 60% 30%, 40% 60%; } }
+  .card.main::after { z-index: 1; }
+  .main-txt { position: relative; z-index: 2; min-width: 0; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 7px; margin-bottom: 22px;
+    padding: 6px 11px 6px 9px; border-radius: 999px;
+    background: rgba(0, 0, 0, .22); border: 1px solid rgba(255, 255, 255, .18);
+    font: 500 12px "Inter", sans-serif; color: #fff;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   }
-  .marquee span { display: inline-block; padding-right: 0; animation: marquee 9s linear infinite; }
-  .marquee b { color: var(--red); font-weight: 800; padding: 0 10px; }
-  @keyframes marquee { to { transform: translateX(-50%); } }
-  .card.main .row { display: flex; align-items: center; gap: 14px; margin: 0 18px 16px; position: relative; z-index: 2; }
-  .card.main .icon { margin: 0; width: 58px; height: 58px; border-radius: 18px; background: #000; border-color: #000; color: #fff; }
-  .card.main .icon svg { width: 28px; height: 28px; animation: shake 4s ease-in-out infinite; }
-  @keyframes shake { 0%, 84%, 100% { transform: none; } 87% { transform: rotate(-12deg) scale(1.1); } 90% { transform: rotate(10deg) scale(1.1); } 93% { transform: rotate(-6deg); } }
-  .card.main h3 { font-size: 34px; font-weight: 900; letter-spacing: -.035em; line-height: 1; margin: 0; }
-  .card.main p { color: rgba(255, 255, 255, .85); font-size: 14px; margin-top: 6px; }
-  .card.main .mark { opacity: .12; color: #000; width: 170px; height: 170px; right: -30px; bottom: -40px; z-index: 0; }
-  .card.main.touch .icon { background: #fff; color: var(--red); border-color: #fff; }
-  .cta {
-    position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between;
-    margin: 0 18px; padding: 14px 14px 14px 20px; border-radius: 18px;
-    background: #000; color: #fff; font: 600 16px "Inter", sans-serif;
+  .tag i { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: blink 1.6s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  .card.main h3 { font-size: 40px; font-weight: 800; letter-spacing: -.04em; line-height: .95; margin: 0; }
+  .card.main p { color: rgba(255, 255, 255, .82); font-size: 14px; margin-top: 8px; }
+  .buy {
+    position: relative; z-index: 2; flex-shrink: 0; width: 64px; height: 64px; border-radius: 50%;
+    background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 24px -8px rgba(0, 0, 0, .5);
+    transition: transform .55s var(--spring), background .3s, color .3s;
   }
-  .cta .arr {
-    width: 36px; height: 36px; border-radius: 50%; background: #fff; color: #000;
-    display: flex; align-items: center; justify-content: center; transition: transform .5s var(--spring), background .3s, color .3s;
+  .buy svg { width: 26px; height: 26px; stroke-width: 2; }
+  .buy::before, .buy::after {  /* расходящиеся кольца */
+    content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, .7);
+    animation: ring 2.6s ease-out infinite;
   }
-  .cta .arr svg { width: 18px; height: 18px; animation: nudge 2.4s ease-in-out infinite; }
-  .card.main.touch .cta .arr { transform: rotate(45deg) scale(1.15); background: var(--red); color: #fff; }
+  .buy::after { animation-delay: 1.3s; }
+  @keyframes ring { from { transform: scale(1); opacity: .8; } to { transform: scale(1.7); opacity: 0; } }
+  .card.main.touch .buy { transform: rotate(45deg) scale(1.1); background: #000; color: #fff; }
 
   /* волна от касания и искры */
   .ripple {
@@ -428,21 +427,6 @@
     else tg.HapticFeedback.impactOccurred(kind || "light");
   }
 
-  // Текст «расшифровывается» из случайных символов
-  const GLYPHS = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ#%&$@*+=?";
-  function scramble(el, text, delay) {
-    if (calm || !text) { el.textContent = text; return; }
-    const len = text.length, total = 18 + len * 1.4;
-    let frame = 0;
-    el.textContent = text.replace(/\S/g, " ");
-    setTimeout(function tick() {
-      const done = Math.floor((frame / total) * len);
-      el.textContent = text.split("").map((ch, i) =>
-        i < done || ch === " " ? ch : GLYPHS[Math.floor(Math.random() * GLYPHS.length)]).join("");
-      if (++frame <= total) requestAnimationFrame(tick); else el.textContent = text;
-    }, delay * 1000);
-  }
-
   // Взрыв искр из точки касания
   function burst(x, y) {
     if (calm) return;
@@ -527,7 +511,7 @@
 
   function render(D) {
     CONTACT = D.contact;
-    scramble(document.getElementById("name"), D.name, .15);
+    document.getElementById("name").textContent = D.name;
     document.getElementById("about").textContent = D.about;
 
     const av = document.getElementById("avatar");
@@ -552,23 +536,17 @@
       card.style.setProperty("--fd", (-i * 1.7) + "s");
       const icon = make("div", "icon"); setIcon(icon, c.icon);
       const mark = make("div", "mark"); if (iconName(c.icon)) mark.innerHTML = svg(iconName(c.icon));
-      const h3 = make("h3");
-      scramble(h3, c.title, delay + .2);
+      const h3 = make("h3", "", c.title);
 
       if (c.link) {
         cell.classList.add("wide");
         card.classList.add("main");
-        const mq = make("div", "marquee"), line = make("span");
-        const word = (c.title || "").toUpperCase();
-        line.innerHTML = Array(12).fill(0).map(() => word.replace(/[<&]/g, "") + "<b>✦</b>").join("");
-        mq.append(line);
-        const row = make("div", "row"), txt = make("div");
-        txt.append(h3, make("p", "", c.short));
-        row.append(icon, txt);
-        const cta = make("div", "cta");
-        cta.append(make("span", "", "Написать @" + c.link.replace(/^@/, "").replace(/^https?:\/\/t\.me\//, "")));
-        const arr = make("span", "arr"); arr.innerHTML = svg("arrow"); cta.append(arr);
-        card.append(mark, mq, row, cta);
+        const txt = make("div", "main-txt"), tag = make("div", "tag");
+        tag.append(make("i"), "@" + c.link.replace(/^@/, "").replace(/^https?:\/\/t\.me\//, ""));
+        txt.append(tag, h3);
+        if (c.short) txt.append(make("p", "", c.short));
+        const buy = make("div", "buy"); buy.innerHTML = svg("arrow");
+        card.append(txt, buy);
         const wrap = make("div", "main-wrap"); wrap.append(card); cell.append(wrap);
         interactive(card, e => {
           haptic("success"); burst(e.clientX, e.clientY);
@@ -602,7 +580,7 @@
     setIcon(document.getElementById("sheetIcon"), c.icon);
     const name = iconName(c.icon);
     document.getElementById("sheetMark").innerHTML = name ? svg(name) : "";
-    scramble(document.getElementById("sheetTitle"), c.title, .1);
+    document.getElementById("sheetTitle").textContent = c.title;
     document.getElementById("sheetText").textContent = c.full;
     document.getElementById("sheetCta").style.display = CONTACT ? "" : "none";
     sheet.scrollTop = 0;
