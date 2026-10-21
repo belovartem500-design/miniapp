@@ -118,7 +118,15 @@
   function render(D) {
     document.getElementById("name").textContent = D.name;
     document.getElementById("about").textContent = D.about;
-    document.getElementById("avatar").textContent = D.avatar;
+    
+        const av = document.getElementById("avatar");
+    if (D.avatar_img) {
+      const img = document.createElement("img");
+      img.src = D.avatar_img;
+      av.appendChild(img);
+    } else {
+      av.textContent = D.avatar;
+    }
 
     const grid = document.getElementById("grid");
     D.cards.forEach((c, i) => {
