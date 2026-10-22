@@ -7,7 +7,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #000000;          /* фон */
@@ -19,6 +19,7 @@
     --red-deep: #b80000;    /* тёмный красный для градиентов */
     --spring: cubic-bezier(.34, 1.56, .64, 1);
     --display: "Unbounded", -apple-system, BlinkMacSystemFont, sans-serif;
+    --serif: "Cormorant Garamond", Georgia, serif;
     --gx: 0; --gy: 0;       /* наклон телефона, -1..1 */
   }
   @property --angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
@@ -357,11 +358,28 @@
   .sheet {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; overflow: hidden auto;
     background: linear-gradient(180deg, #151515, #0a0a0a); border-top: 1px solid #2a2a2a;
-    border-radius: 30px 30px 0 0; padding: 14px 20px calc(24px + env(safe-area-inset-bottom)); max-height: 82vh;
+    border-radius: 30px 30px 0 0; padding: 14px 20px calc(24px + env(safe-area-inset-bottom)); max-height: 92vh;
     overscroll-behavior: contain;
     transform: translateY(105%); transition: transform .55s var(--spring);
   }
   .sheet.show { transform: translateY(var(--drag, 0px)); }
+  .sheet::before {  /* полутон и красное свечение в шапке окна */
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 340px; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(circle, rgba(255, 42, 42, .55) 1.1px, transparent 1.6px) 0 0 / 9px 9px,
+      radial-gradient(70% 80% at 85% 0%, rgba(255, 42, 42, .22), transparent 70%);
+    -webkit-mask-image: radial-gradient(90% 100% at 100% 0%, #000 0%, transparent 70%);
+            mask-image: radial-gradient(90% 100% at 100% 0%, #000 0%, transparent 70%);
+    animation: sheetdots 14s linear infinite;
+  }
+  @keyframes sheetdots { to { background-position: 9px 9px, 0 0; } }
+  .progress { position: sticky; top: -14px; z-index: 4; height: 3px; margin: -14px -20px 11px; background: transparent; }
+  .progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--red-deep), var(--red), #ff8a8a);
+                box-shadow: 0 0 12px var(--red); border-radius: 0 3px 3px 0; }
+  .meta { display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+          font: 500 11px/1 "Inter", sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #8a8a8a; }
+  .meta b { color: var(--red); font-weight: 600; }
+  .meta i { width: 3px; height: 3px; border-radius: 50%; background: #555; }
   .sheet.dragging { transition: none; }
   .sheet .mark { position: absolute; right: -40px; top: -20px; width: 220px; height: 220px; opacity: .05; z-index: 0; rotate: -14deg; pointer-events: none; }
   .sheet .mark svg { width: 100%; height: 100%; animation: markspin 24s linear infinite; }
@@ -375,8 +393,60 @@
   .sheet.show .icon { animation: pop .7s var(--spring) .1s both; }
   @keyframes pop { from { transform: scale(.3) rotate(-30deg); } }
   .sheet .icon svg { width: 28px; height: 28px; }
-  .sheet h2 { font-family: var(--display); font-size: 26px; font-weight: 900; letter-spacing: -.02em; margin-bottom: 12px; }
-  .sheet .full { font-size: 16px; line-height: 1.55; color: #d0d0d0; margin-bottom: 24px; }
+  .sheet h2 {
+    font-family: var(--display); font-size: clamp(26px, 8vw, 34px); font-weight: 900; letter-spacing: -.035em; line-height: 1.02;
+    margin-bottom: 22px; padding-right: 40px; overflow-wrap: break-word;
+    background: linear-gradient(180deg, #fff 40%, #ffb3b3 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sheet .full { font-size: 16px; line-height: 1.6; color: #cfcfcf; margin-bottom: 26px; position: relative; z-index: 1; }
+
+  /* оформление текста окна */
+  .rv { opacity: 0; transform: translateY(22px); filter: blur(4px);
+        transition: opacity .7s ease, transform .8s var(--spring), filter .7s ease; transition-delay: var(--rd, 0s); }
+  .rv.in { opacity: 1; transform: none; filter: none; }
+  .hl { color: #fff; font-weight: 600; background: linear-gradient(transparent 62%, rgba(255, 42, 42, .45) 62%) no-repeat 0 0 / 0% 100%;
+        transition: background-size 1s cubic-bezier(.7, 0, .2, 1) .35s; padding: 0 1px; }
+  .in .hl, .hl.in { background-size: 100% 100%; }
+  .full .sec {
+    display: flex; align-items: center; gap: 12px; margin: 30px 0 14px;
+    font: 800 20px/1.1 var(--display); letter-spacing: -.02em; color: #fff;
+  }
+  .full .sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, #3a1010, transparent); }
+  .block {
+    position: relative; margin: 0 0 12px; padding: 18px 18px 14px 18px; border-radius: 20px; overflow: hidden;
+    background: linear-gradient(160deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .01)); border: 1px solid #222;
+  }
+  .block::before {  /* красная полоска слева */
+    content: ""; position: absolute; left: 0; top: 18px; bottom: 18px; width: 2px; border-radius: 2px;
+    background: linear-gradient(180deg, var(--red), transparent); transform: scaleY(0); transform-origin: top;
+    transition: transform .9s cubic-bezier(.7, 0, .2, 1) .3s;
+  }
+  .block.in::before { transform: scaleY(1); }
+  .block .bn { position: absolute; right: 14px; top: 10px; font: 900 34px/1 var(--display); letter-spacing: -.04em;
+               color: transparent; -webkit-text-stroke: 1px #2c2c2c; }
+  .block h5 { font: 700 17px/1.25 var(--display); letter-spacing: -.015em; color: #fff; margin: 0 58px 10px 0; }
+  .block p:last-child { margin-bottom: 0; }
+  .pull {
+    position: relative; margin: 26px 0; padding: 4px 0 4px 20px; border-left: 2px solid var(--red);
+    font: italic 600 clamp(24px, 7vw, 30px)/1.15 var(--serif); color: #fff; letter-spacing: -.01em;
+  }
+  .pull::before { content: "“"; position: absolute; left: 12px; top: -22px; font: 600 64px/1 var(--serif); color: var(--red); opacity: .55; }
+  .punch {
+    margin: 28px 0 8px; text-align: center; font: 900 clamp(28px, 9vw, 40px)/1 var(--display); letter-spacing: -.04em;
+    background: linear-gradient(100deg, #fff 30%, #ff6b6b 50%, #fff 70%) 0 0 / 250% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine 4s ease-in-out infinite;
+  }
+  .stats { display: grid; gap: 8px; margin: 18px 0 8px; }
+  .stat { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 18px;
+          background: #0d0d0d; border: 1px solid #222; position: relative; overflow: hidden; }
+  .stat:last-child { border-color: rgba(255, 42, 42, .5); background: linear-gradient(160deg, rgba(255, 42, 42, .22), #0d0d0d 70%); }
+  .stat b { flex: 0 0 auto; min-width: 42%; font: 900 clamp(22px, 7vw, 28px)/1 var(--display); letter-spacing: -.045em;
+            color: #fff; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .stat:last-child b { color: #ff8a8a; }
+  .stat span { font-size: 13px; line-height: 1.3; color: #9a9a9a; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+  .tags span { padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(255, 42, 42, .35); background: rgba(255, 42, 42, .08);
+               font: 600 12.5px "Inter", sans-serif; color: #ffb0b0; letter-spacing: .02em; }
   .full p { margin-bottom: 12px; }
   .full h4 {
     display: flex; align-items: center; gap: 8px; margin: 20px 0 10px;
@@ -511,10 +581,12 @@
 
   <div class="overlay" id="overlay"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="progress"><i id="sheetProgress"></i></div>
     <div class="mark" id="sheetMark"></div>
     <div class="grab"></div>
     <button class="close" id="closeBtn" aria-label="Закрыть"></button>
     <div class="icon anim" id="sheetIcon"></div>
+    <div class="meta anim" id="sheetMeta" style="--d:.04s"></div>
     <h2 class="anim" id="sheetTitle" style="--d:.08s"></h2>
     <div class="full anim" id="sheetText" style="--d:.14s"></div>
     <div class="chips anim" id="sheetChips" style="--d:.2s"></div>
@@ -607,20 +679,89 @@
     el.append(text.slice(last));
     return el;
   }
+  // **жирный акцент** внутри строки + кликабельные ссылки
+  function inline(el, text) {
+    text.split(/\*\*(.+?)\*\*/).forEach((part, i) => {
+      if (i % 2) el.append(linkify(make("span", "hl"), part)); else linkify(el, part);
+    });
+    return el;
+  }
+  // Цифры «набегают» от нуля: 40к, 220 000, 300–500к
+  function countUp(el) {
+    const src = el.textContent;
+    if (calm || !/\d/.test(src)) return;
+    const t0 = performance.now();
+    (function step(now) {
+      const p = Math.min(1, Math.max(0, (now - t0) / 1300)), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = src.replace(/\d[\d\s]*\d|\d/g, m => {
+        const n = Math.round(parseInt(m.replace(/\s/g, ""), 10) * e);
+        return /\s/.test(m) ? n.toLocaleString("ru-RU").replace(/\u00a0/g, " ") : String(n);
+      });
+      if (p < 1) requestAnimationFrame(step); else el.textContent = src;
+    })(t0);
+    setTimeout(() => { el.textContent = src; }, 1600);  // страховка: цифра всегда встаёт в итог
+  }
+  // Разметка текста окна (пишется в админке обычным текстом):
+  //   # Раздел            — заголовок раздела
+  //   ## Пункт            — блок-карточка с номером, следующие строки идут внутрь
+  //   > Фраза             — крупная цитата
+  //   !! Фраза            — финальный «удар» по центру
+  //   %% 40к | подпись    — плашка с цифрой (подряд идущие встают в ряд)
+  //   ~ РКО | МФО | ДК    — метки-таблетки
+  //   • пункт / Заголовок: — список и маленький подзаголовок
+  //   **слово**           — красный акцент; пустая строка — новый абзац
   function richText(el, text) {
     el.textContent = "";
-    let list = null, para = [];
-    const flush = () => { if (para.length) { el.append(linkify(make("p"), para.join(" "))); para = []; } };
+    let box = el, list = null, stats = null, para = [], blocks = 0;
+    const flush = () => { if (para.length) { box.append(inline(make("p"), para.join(" "))); para = []; } };
+    const top = node => { flush(); box = el; list = null; stats = null; el.append(node); return node; };
     (text || "").split(/\r?\n/).forEach(raw => {
       const line = raw.trim();
+      let m;
+      if ((m = line.match(/^##\s+(.*)$/))) {
+        const b = top(make("div", "block"));
+        b.append(make("span", "bn", String(++blocks).padStart(2, "0")), inline(make("h5"), m[1]));
+        box = b; return;
+      }
+      if ((m = line.match(/^#\s+(.*)$/))) { top(inline(make("div", "sec"), m[1])); return; }
+      if ((m = line.match(/^>\s+(.*)$/))) { top(inline(make("blockquote", "pull"), m[1])); return; }
+      if ((m = line.match(/^!!\s+(.*)$/))) { top(make("div", "punch", m[1].replace(/\*\*/g, ""))); return; }
+      if ((m = line.match(/^%%\s+(.*?)\s*\|\s*(.*)$/))) {
+        flush(); list = null;
+        if (!stats) { stats = make("div", "stats"); box = el; el.append(stats); }
+        const st = make("div", "stat"); st.append(make("b", "", m[1]), make("span", "", m[2])); stats.append(st);
+        return;
+      }
+      stats = null;
+      if ((m = line.match(/^~\s+(.*)$/))) {
+        flush(); list = null;
+        const tg_ = make("div", "tags");
+        m[1].split("|").map(x => x.trim()).filter(Boolean).forEach(x => tg_.append(make("span", "", x)));
+        box.append(tg_); return;
+      }
       const bullet = line.match(/^([•\-—–*])\s+(.*)$/);
-      if (bullet) { flush(); if (!list) { list = make("ul"); el.append(list); } list.append(linkify(make("li"), bullet[2])); return; }
+      if (bullet) { flush(); if (!list) { list = make("ul"); box.append(list); } list.append(inline(make("li"), bullet[2])); return; }
       list = null;
       if (!line) { flush(); return; }
-      if (/:$/.test(line) && line.length < 48) { flush(); el.append(make("h4", "", line.slice(0, -1))); return; }
+      if (/:$/.test(line) && line.length < 48) { flush(); box.append(make("h4", "", line.slice(0, -1))); return; }
       para.push(line);
     });
     flush();
+    // плавное появление блоков: проверяем позицию при открытии и при прокрутке окна
+    const items = [...el.children];
+    items.forEach(n => n.classList.add("rv"));
+    if (calm) { items.forEach(n => n.classList.add("in")); return; }
+    REVEAL = () => {
+      const limit = sheet.getBoundingClientRect().bottom - 30;
+      let wave = 0;
+      items.forEach(n => {
+        if (n.classList.contains("in") || n.getBoundingClientRect().top > limit) return;
+        n.style.setProperty("--rd", (wave++ % 5) * .08 + "s");
+        n.classList.add("in");
+        n.querySelectorAll(".stat b").forEach((b, i) => setTimeout(() => countUp(b), 300 + i * 150));
+      });
+    };
+    setTimeout(() => REVEAL && REVEAL(), 260);  // после того как окно выедет
   }
   function openLink(url) {
     if (tg && tg.initData) {
@@ -950,7 +1091,7 @@
   })();
 
   const FALLBACK = { name: "", about: "", contact: "", avatar: "🙂", cards: [] };
-  let CONTACT = "";
+  let CONTACT = "", BUY = null, REGULAR = 0, SHEET_CARD = null, REVEAL = null;
 
   fetch("data.json?t=" + Date.now())
     .then(r => r.ok ? r.json() : FALLBACK)
@@ -962,6 +1103,7 @@
 
   function render(D) {
     CONTACT = D.contact;
+    BUY = D.cards.find(c => c.link) || null;
     const me = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
     if (me && me.first_name) {
       const hello = document.getElementById("hello");
@@ -991,7 +1133,7 @@
     // при трёх обычных первая высокая, при нечётном числе последняя широкая
     const grid = document.getElementById("grid");
     grid.textContent = "";
-    const regular = D.cards.filter(c => !c.link).length;
+    const regular = REGULAR = D.cards.filter(c => !c.link).length;
     let n = 0;
     D.cards.forEach((c, i) => {
       const cell = make("div", "cell rise");
@@ -1027,8 +1169,10 @@
         });
       } else {
         n++;
-        if (regular === 3 && n === 1) cell.classList.add("tall");
-        else if (regular !== 3 && regular % 2 && n === regular) cell.classList.add("wide");
+        card.dataset.n = n;
+        if ((regular === 3 || regular === 4) && n === 1) cell.classList.add("tall");
+        else if (regular === 4 && n === 4) cell.classList.add("wide");
+        else if (regular !== 3 && regular !== 4 && regular % 2 && n === regular) cell.classList.add("wide");
         const txt = make("div", "txt");
         txt.append(h3, make("p", "", c.short));
         const go = make("div", "go"); go.append(make("span", "", "Открыть"));
@@ -1046,10 +1190,17 @@
   const sheet = document.getElementById("sheet");
   let lifted = null;
   document.getElementById("closeBtn").innerHTML = svg("close");
+  // Кнопка внизу окна: с текстом из поля «cta» ведёт на покупку, иначе — в личку
   document.getElementById("sheetCta").onclick = e => {
     haptic("success"); burst(e.clientX, e.clientY);
-    setTimeout(() => openLink(linkUrl(CONTACT)), 380);
+    const url = SHEET_CARD && SHEET_CARD.cta && BUY ? chatUrl(BUY.link, BUY.msg) : linkUrl(CONTACT);
+    setTimeout(() => openLink(url), 380);
   };
+  sheet.addEventListener("scroll", () => {
+    const max = sheet.scrollHeight - sheet.clientHeight;
+    document.getElementById("sheetProgress").style.width = (max > 0 ? sheet.scrollTop / max * 100 : 0) + "%";
+    if (REVEAL) REVEAL();
+  }, { passive: true });
 
   const morph = !calm && !!document.startViewTransition;
   function setSwipes(on) {
@@ -1098,6 +1249,12 @@
     const name = iconName(c.icon);
     document.getElementById("sheetMark").innerHTML = name ? svg(name) : "";
     document.getElementById("sheetTitle").textContent = c.title;
+    const words = (c.full || "").split(/\s+/).filter(Boolean).length;
+    const meta = document.getElementById("sheetMeta");
+    meta.textContent = "";
+    meta.append(make("b", "", String(card.dataset.n || "").padStart(2, "0") + " / " + String(REGULAR).padStart(2, "0")),
+                make("i"), Math.max(1, Math.round(words / 170)) + " мин чтения");
+    document.getElementById("sheetProgress").style.width = "0";
     richText(document.getElementById("sheetText"), c.full);
     const chips = document.getElementById("sheetChips");
     chips.textContent = "";
@@ -1106,7 +1263,10 @@
       b.onclick = () => { haptic("light"); openLink(chatUrl(CONTACT, q)); };
       chips.append(b);
     });
-    document.getElementById("sheetCta").style.display = CONTACT ? "" : "none";
+    const cta = document.getElementById("sheetCta");
+    SHEET_CARD = c;
+    cta.textContent = c.cta || "Написать мне";
+    cta.style.display = (c.cta && BUY) || CONTACT ? "" : "none";
     if (tg && tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeSheet); }
     sheet.scrollTop = 0;
     sheet.style.setProperty("--drag", "0px");
