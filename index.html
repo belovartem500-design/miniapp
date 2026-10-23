@@ -20,7 +20,6 @@
     --spring: cubic-bezier(.34, 1.56, .64, 1);
     --display: "Unbounded", -apple-system, BlinkMacSystemFont, sans-serif;
     --serif: "Cormorant Garamond", Georgia, serif;
-    --gx: 0; --gy: 0;       /* наклон телефона, -1..1 */
   }
   @property --angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
 
@@ -35,7 +34,7 @@
 
   /* ===== Живой фон: дрейфующее красное свечение, сетка, зерно ===== */
   .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-  .bg-layer { position: absolute; inset: -60px; translate: calc(var(--gx) * -30px) calc(var(--gy) * -30px); }
+  .bg-layer { position: absolute; inset: -60px; will-change: translate; }
   .blob {
     position: absolute; width: 520px; height: 520px; border-radius: 50%;
     background: radial-gradient(circle, rgba(255, 42, 42, .32) 0%, rgba(255, 42, 42, 0) 62%);
@@ -56,9 +55,7 @@
     background-size: 36px 36px;
     -webkit-mask-image: radial-gradient(ellipse at 50% 20%, #000 10%, transparent 70%);
             mask-image: radial-gradient(ellipse at 50% 20%, #000 10%, transparent 70%);
-    animation: gridmove 8s linear infinite;
   }
-  @keyframes gridmove { to { background-position: 0 36px, 36px 0; } }
   .grain {
     position: absolute; inset: -50%; opacity: .07;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -73,19 +70,24 @@
   /* ===== Появление элементов ===== */
   .rise { opacity: 0; animation: rise .9s var(--spring) forwards; }
   @keyframes rise {
-    from { opacity: 0; transform: translateY(30px) scale(.92) rotateX(18deg); filter: blur(10px); }
-    to   { opacity: 1; transform: none; filter: none; }
+    from { opacity: 0; transform: translateY(30px) scale(.94); }
+    to   { opacity: 1; transform: none; }
   }
 
   /* ===== Шапка ===== */
   .hero { text-align: center; margin: 34px 0 34px; }
   .avatar-wrap {
-    position: relative; width: 104px; height: 104px; margin: 0 auto 40px;
-    translate: calc(var(--gx) * 8px) calc(var(--gy) * 8px);
+    position: relative; width: 104px; height: 104px; margin: 0 auto 40px; isolation: isolate;
   }
   /* полутоновый ореол вокруг аватарки (рисуется в canvas) */
+  .halo-k { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
+  .halo-k.kick { animation: halokick .9s var(--spring); }
+  @keyframes halokick { 30% { transform: scale(1.32); opacity: .55; } }
   .halo { position: absolute; left: 50%; top: 50%; width: 250px; height: 250px; margin: -125px 0 0 -125px;
-          pointer-events: none; z-index: -1; }
+          pointer-events: none; will-change: transform, opacity;
+          animation: haloin 1.5s cubic-bezier(.2, .8, .2, 1) both, halobreath 4.6s ease-in-out 1.5s infinite; }
+  @keyframes haloin { from { transform: scale(1.9) rotate(-25deg); opacity: 0; } }
+  @keyframes halobreath { 50% { transform: scale(1.12); opacity: .72; } }
   @keyframes spin { to { --angle: 360deg; } }
   .avatar {
     position: relative; width: 100%; height: 100%; border-radius: 50%;
@@ -118,7 +120,7 @@
     display: flex; flex-direction: column;
     background: #080808; border: 1px solid #191919;
     overflow: hidden; cursor: pointer; isolation: isolate;
-    transform: rotateX(calc(var(--rx, 0deg) + var(--gy) * -5deg)) rotateY(calc(var(--ry, 0deg) + var(--gx) * 7deg))
+    transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))
                translateZ(var(--z, 0px)) scale(var(--s, 1));
     transition: transform .7s var(--spring), border-color .4s, box-shadow .5s, opacity .3s;
     animation: float 7s ease-in-out infinite; animation-delay: var(--fd, 0s);
@@ -149,7 +151,7 @@
     background-size: 12px 12px;
     -webkit-mask-image: radial-gradient(circle 90px at var(--lx) var(--ly), #000 0%, transparent 100%);
             mask-image: radial-gradient(circle 90px at var(--lx) var(--ly), #000 0%, transparent 100%);
-    opacity: .35; animation: wander 9s ease-in-out infinite alternate; animation-delay: var(--fd, 0s);
+    opacity: .35; --lx: 72%; --ly: 30%;
     transition: opacity .4s;
   }
   @keyframes wander {
@@ -166,7 +168,11 @@
   .card.on .reveal:not(.hand) { opacity: 0; }
 
   /* тихий полутон из угла карточки (canvas) */
-  .ht { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+  .ht { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none;
+         opacity: .6; transform-origin: 100% 0; transition: opacity .5s;
+         animation: htbreath 7s ease-in-out infinite; animation-delay: var(--fd, 0s); }
+  @keyframes htbreath { 50% { transform: scale(1.05); } }
+  .card.on .ht { opacity: 1; }
 
   /* рамка, которая загорается там, где палец */
   .card::before {
@@ -283,6 +289,7 @@
     animation: halo 3s ease-in-out infinite; transition: opacity .5s;
   }
   .elixir svg { width: 100%; height: 100%; overflow: visible; }
+  .elixir.off, .elixir.off * { animation-play-state: paused !important; }
   .card.main.on .elixir { scale: 1.04; }
   .card.main.on .elixir::before { opacity: 1.4; animation-duration: 1.2s; }
   .wave { animation: wave 6.5s linear infinite; }
@@ -330,11 +337,11 @@
   .buy .arr svg { width: 18px; height: 18px; animation: nudge 2.4s ease-in-out infinite; }
   @keyframes nudge { 0%, 70%, 100% { transform: none; } 80% { transform: translate(2px, -2px); } }
   .buy::after {  /* редкий блик */
-    content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 30%;
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 30%;
     background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .7), transparent);
-    transform: skewX(-20deg); animation: sweep 5s ease-in-out infinite;
+    transform: translateX(-140%) skewX(-20deg); animation: sweep 5s ease-in-out infinite;
   }
-  @keyframes sweep { 0%, 70% { left: -40%; } 100% { left: 130%; } }
+  @keyframes sweep { 0%, 70% { transform: translateX(-140%) skewX(-20deg); } 100% { transform: translateX(440%) skewX(-20deg); } }
   .card.main.on .buy { color: #fff; box-shadow: 0 10px 30px -8px rgba(255, 42, 42, .9); }
   .card.main.on .buy::before { transform: scaleX(1); }
   .card.main.on .buy .arr { background: #fff; color: var(--red); transform: rotate(45deg); }
@@ -351,7 +358,7 @@
   /* ===== Всплывающее окно с подробностями ===== */
   .overlay {
     position: fixed; inset: 0; background: rgba(0, 0, 0, .6); z-index: 10;
-    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     opacity: 0; pointer-events: none; transition: opacity .35s;
   }
   .overlay.show { opacity: 1; pointer-events: auto; }
@@ -370,9 +377,7 @@
       radial-gradient(70% 80% at 85% 0%, rgba(255, 42, 42, .22), transparent 70%);
     -webkit-mask-image: radial-gradient(90% 100% at 100% 0%, #000 0%, transparent 70%);
             mask-image: radial-gradient(90% 100% at 100% 0%, #000 0%, transparent 70%);
-    animation: sheetdots 14s linear infinite;
   }
-  @keyframes sheetdots { to { background-position: 9px 9px, 0 0; } }
   .progress { position: sticky; top: -14px; z-index: 4; height: 3px; margin: -14px -20px 11px; background: transparent; }
   .progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--red-deep), var(--red), #ff8a8a);
                 box-shadow: 0 0 12px var(--red); border-radius: 0 3px 3px 0; }
@@ -401,9 +406,9 @@
   .sheet .full { font-size: 16px; line-height: 1.6; color: #cfcfcf; margin-bottom: 26px; position: relative; z-index: 1; }
 
   /* оформление текста окна */
-  .rv { opacity: 0; transform: translateY(22px); filter: blur(4px);
-        transition: opacity .7s ease, transform .8s var(--spring), filter .7s ease; transition-delay: var(--rd, 0s); }
-  .rv.in { opacity: 1; transform: none; filter: none; }
+  .rv { opacity: 0; transform: translateY(22px);
+        transition: opacity .7s ease, transform .8s var(--spring); transition-delay: var(--rd, 0s); }
+  .rv.in { opacity: 1; transform: none; }
   .hl { color: #fff; font-weight: 600; background: linear-gradient(transparent 62%, rgba(255, 42, 42, .45) 62%) no-repeat 0 0 / 0% 100%;
         transition: background-size 1s cubic-bezier(.7, 0, .2, 1) .35s; padding: 0 1px; }
   .in .hl, .hl.in { background-size: 100% 100%; }
@@ -533,9 +538,9 @@
   .avatar.boom { animation: boom .7s var(--spring); }
   @keyframes boom { 30% { transform: scale(.86); } 60% { transform: scale(1.08); } }
   .sheet-cta::after {
-    content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 30%;
     background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent);
-    transform: skewX(-20deg); animation: sweep 3s ease-in-out infinite;
+    transform: translateX(-140%) skewX(-20deg); animation: sweep 3s ease-in-out infinite;
   }
   .sheet-cta:active { transform: scale(.96); }
   .close {
@@ -561,7 +566,7 @@
 
   <div class="hero">
     <div class="avatar-wrap rise">
-      <canvas class="halo" id="halo"></canvas>
+      <div class="halo-k" id="haloK"><canvas class="halo" id="halo"></canvas></div>
       <div class="avatar" id="avatar"></div>
     </div>
     <div class="hello rise" id="hello" style="animation-delay:.04s"></div>
@@ -833,15 +838,28 @@
     });
   }
 
-  // Параллакс от наклона телефона
+  // Параллакс от наклона телефона: двигаем только фон и аватарку, цикл спит, когда телефон неподвижен
+  const TILT = { x: 0, y: 0 }, WAKE = [];
   (function tiltWithPhone() {
     if (calm) return;
-    let base = null, tx = 0, ty = 0, cx = 0, cy = 0;
+    let base = null, tx = 0, ty = 0, running = false;
+    const bg = document.querySelector(".bg-layer"), av = document.querySelector(".avatar-wrap");
+    const loop = () => {
+      TILT.x += (tx - TILT.x) * .08; TILT.y += (ty - TILT.y) * .08;
+      bg.style.translate = `${(TILT.x * -30).toFixed(1)}px ${(TILT.y * -30).toFixed(1)}px`;
+      av.style.translate = `${(TILT.x * 8).toFixed(1)}px ${(TILT.y * 8).toFixed(1)}px`;
+      WAKE.forEach(f => f());
+      running = Math.abs(tx - TILT.x) > .002 || Math.abs(ty - TILT.y) > .002;
+      if (running) requestAnimationFrame(loop);
+    };
     const feed = (beta, gamma) => {
       if (beta == null || gamma == null) return;
       if (!base) base = { beta, gamma };
-      tx = Math.max(-1, Math.min(1, (gamma - base.gamma) / 25));
-      ty = Math.max(-1, Math.min(1, (beta - base.beta) / 25));
+      const nx = Math.max(-1, Math.min(1, (gamma - base.gamma) / 25));
+      const ny = Math.max(-1, Math.min(1, (beta - base.beta) / 25));
+      if (Math.abs(nx - tx) < .01 && Math.abs(ny - ty) < .01) return;  // дрожание руки не будит анимацию
+      tx = nx; ty = ny;
+      if (!running) { running = true; requestAnimationFrame(loop); }
     };
     if (tg && tg.isVersionAtLeast && tg.isVersionAtLeast("8.0") && tg.DeviceOrientation) {
       tg.onEvent("deviceOrientationChanged", () =>
@@ -850,13 +868,6 @@
     } else {
       addEventListener("deviceorientation", e => feed(e.beta, e.gamma));
     }
-    const root = document.documentElement.style;
-    (function loop() {
-      cx += (tx - cx) * .08; cy += (ty - cy) * .08;
-      root.setProperty("--gx", cx.toFixed(3));
-      root.setProperty("--gy", cy.toFixed(3));
-      requestAnimationFrame(loop);
-    })();
   })();
 
   // Флакон эликсира: гранёная крышка, красное стекло, жидкость с волнами, растровая текстура
@@ -890,13 +901,14 @@
         <stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#000" stop-opacity="0"/>
         <stop offset="1" stop-color="#000" stop-opacity=".55"/>
       </linearGradient>
-      <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>
+      <radialGradient id="shadowg"><stop offset="0" stop-color="#000" stop-opacity=".8"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+      <radialGradient id="glowg"><stop offset="0" stop-color="#ff2a2a" stop-opacity=".55"/><stop offset="1" stop-color="#ff2a2a" stop-opacity="0"/></radialGradient>
       <pattern id="dots" width="2.6" height="2.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
         <circle cx="1.3" cy="1.3" r=".75" fill="#000"/>
       </pattern>
     </defs>
-    <ellipse cx="40" cy="158" rx="30" ry="3.5" fill="#000" opacity=".8" filter="url(#soft)"/>
-    <ellipse cx="40" cy="157" rx="22" ry="2" fill="#ff2a2a" opacity=".5" filter="url(#soft)"/>
+    <ellipse cx="40" cy="158" rx="34" ry="5" fill="url(#shadowg)"/>
+    <ellipse cx="40" cy="157" rx="26" ry="3.5" fill="url(#glowg)"/>
     <path d="M22 46 H58 C67 46 72 52 72 62 V140 C72 150 66 156 56 156 H24 C14 156 8 150 8 140 V62 C8 52 13 46 22 46 Z" fill="#120000"/>
     <g clip-path="url(#ebody)">
       <g class="liquid" style="transform-origin:40px 101px">
@@ -911,7 +923,7 @@
       <circle class="bubble" cx="37" cy="142" r="2.3" fill="rgba(255,210,210,.6)" style="animation-delay:1.8s"/>
       <circle class="bubble" cx="56" cy="140" r="1.2" fill="rgba(255,210,210,.8)" style="animation-delay:2.4s"/>
       <rect x="0" y="40" width="80" height="120" fill="url(#shade)"/>
-      <g class="spec"><rect x="19" y="54" width="8" height="92" rx="4" fill="url(#spec)" filter="url(#soft)"/>
+      <g class="spec"><rect x="18" y="54" width="10" height="92" rx="5" fill="url(#spec)" opacity=".8"/>
         <rect x="21.5" y="60" width="2.2" height="70" rx="1.1" fill="#fff" opacity=".55"/></g>
       <!-- блики стекла по краям -->
       <path d="M14 60 C11 85 11 125 14 146" fill="none" stroke="#ff3838" stroke-width="5" stroke-linecap="round" opacity=".95"/>
@@ -943,57 +955,64 @@
   // сам флакон мягко поворачивается в 3D
   function slosh(card, liquid, surf) {
     const box = liquid.closest(".elixir");
-    let angle = 0, vel = 0, energy = 0, lastX = null, push = 0;
+    let angle = 0, vel = 0, energy = 0, lastX = null, push = 0, running = false;
     const born = performance.now();
     let rotY = 0, rotX = 0, aimY = 0, aimX = 0;
+    const wake = () => { if (!running) { running = true; requestAnimationFrame(loop); } };
+    WAKE.push(wake);
     card.addEventListener("pointermove", e => {
       const r = card.getBoundingClientRect();
       aimY = ((e.clientX - r.left) / r.width - .5) * 40;
       aimX = (.5 - (e.clientY - r.top) / r.height) * 16;
       if (lastX !== null) push += (e.clientX - lastX) * .05;
       lastX = e.clientX;
+      wake();
     });
-    const leave = () => { lastX = null; aimY = 0; aimX = 0; };
+    const leave = () => { lastX = null; aimY = 0; aimX = 0; wake(); };
     card.addEventListener("pointerleave", leave);
     card.addEventListener("pointerup", () => { lastX = null; });
-    card.addEventListener("pointerdown", e => { lastX = e.clientX; energy = Math.min(1, energy + .3); });
-    (function loop() {
-      const gx = parseFloat(document.documentElement.style.getPropertyValue("--gx")) || 0;
-      const gy = parseFloat(document.documentElement.style.getPropertyValue("--gy")) || 0;
+    card.addEventListener("pointerdown", e => { lastX = e.clientX; energy = Math.min(1, energy + .3); wake(); });
+    // вне экрана волны и пузырьки ставим на паузу
+    if ("IntersectionObserver" in window)
+      new IntersectionObserver(([en]) => box.classList.toggle("off", !en.isIntersecting)).observe(box);
+    function loop() {
       // толчок от пальца раздаём плавно, а не одним рывком
       const p = push * .12; push -= p; vel += p;
       energy = Math.min(1, energy * .985 + Math.abs(p) * .04);
-      vel += (-gx * 18 - angle) * .012; vel *= .965; angle += vel;
+      vel += (-TILT.x * 18 - angle) * .012; vel *= .965; angle += vel;
       angle = Math.max(-26, Math.min(26, angle));
-      rotY += (aimY + gx * 25 - rotY) * .05;
-      rotX += (aimX - gy * 10 - rotX) * .05;
+      const ty = aimY + TILT.x * 25, tx = aimX - TILT.y * 10;
+      rotY += (ty - rotY) * .05; rotX += (tx - rotX) * .05;
       // при открытии эликсир наливается снизу вверх
       const f = calm ? 1 : Math.min(1, Math.max(0, (performance.now() - born - 700) / 2200));
       const fill = 1 - Math.pow(1 - f, 3);
-      liquid.style.transform = `translateY(${((1 - fill) * 104).toFixed(1)}px) rotate(${angle.toFixed(2)}deg)`;
       if (f < 1) energy = Math.max(energy, .5 * (1 - f));
+      liquid.style.transform = `translateY(${((1 - fill) * 104).toFixed(1)}px) rotate(${angle.toFixed(2)}deg)`;
       surf.style.transform = `scaleY(${(1 + energy * .9).toFixed(3)})`;
       box.style.setProperty("--bry", rotY.toFixed(2) + "deg");
       box.style.setProperty("--brx", rotX.toFixed(2) + "deg");
       box.style.setProperty("--bsx", (-rotY * .35).toFixed(2) + "px");
-      requestAnimationFrame(loop);
-    })();
+      // всё успокоилось — засыпаем до следующего касания или наклона
+      running = f < 1 || Math.abs(push) > .01 || Math.abs(vel) > .005 || Math.abs(-TILT.x * 18 - angle) > .05
+        || energy > .005 || Math.abs(ty - rotY) > .05 || Math.abs(tx - rotX) > .05;
+      if (running) requestAnimationFrame(loop);
+    }
+    wake();
   }
 
-  // Полутоновый ореол: точки крупные у аватарки и мельчают к краю;
-  // по кругу плавно разлетаются наружу и возвращаются
-  let haloKick = 0;
+  // Полутоновый ореол: точки крупные у аватарки и мельчают к краю.
+  // Рисуем один раз, а разлёт и «дыхание» делает видеокарта (transform слоя)
   document.getElementById("avatar").addEventListener("click", e => {
-    haloKick = 1; haptic("heavy");
-    const av = e.currentTarget; av.classList.remove("boom"); void av.offsetWidth; av.classList.add("boom");
+    haptic("heavy");
+    const k = document.getElementById("haloK"), av = e.currentTarget;
+    k.classList.remove("kick"); av.classList.remove("boom"); void k.offsetWidth;
+    k.classList.add("kick"); av.classList.add("boom");
   });
   (function halftoneHalo() {
     const cv = document.getElementById("halo"), ctx = cv.getContext("2d");
-    const SIZE = 250, C = SIZE / 2, R0 = 54, R1 = 98, STEP = 6.2, PERIOD = 4600, SPREAD = 14;
-    const T0 = performance.now();
-    const dpr = Math.min(devicePixelRatio || 1, 3);
+    const SIZE = 250, C = SIZE / 2, R0 = 54, R1 = 98, STEP = 6.2;
+    const dpr = Math.min(devicePixelRatio || 1, 2);
     cv.width = cv.height = SIZE * dpr; ctx.scale(dpr, dpr);
-    const dots = [];
     for (let gy = -R1; gy <= R1; gy += STEP)
       for (let gx = -R1; gx <= R1; gx += STEP) {
         const x = (gx - gy) * .7071, y = (gx + gy) * .7071;  // сетка под 45°, как в печати
@@ -1001,93 +1020,60 @@
         if (r < R0 || r > R1) continue;
         const u = (r - R0) / (R1 - R0), a = Math.atan2(y, x);
         const size = 3.3 * Math.pow(1 - u, 1.2) * (.85 + .15 * Math.sin(a * 5));
-        if (size > .25) dots.push({ ux: x / r, uy: y / r, r, u, a, size });
+        if (size < .25) continue;
+        ctx.globalAlpha = Math.min(1, .35 + (1 - u) * .75);
+        ctx.fillStyle = u < .18 ? "#ff6a6a" : "#ff2a2a";
+        ctx.beginPath(); ctx.arc(C + x, C + y, size, 0, 6.2832); ctx.fill();
       }
-    function draw(t) {
-      ctx.clearRect(0, 0, SIZE, SIZE);
-      const ph = (t % PERIOD) / PERIOD * Math.PI * 2;
-      for (const d of dots) {
-        // внешние точки чуть запаздывают — получается мягкая волна
-        const s = calm ? 0 : (1 - Math.cos(ph - d.u * 1.1)) / 2;
-        const k = s * s * (3 - 2 * s);
-        // при открытии точки слетаются к аватарке издалека
-        const it = calm ? 1 : Math.min(1, Math.max(0, (t - d.u * 350) / 1300)), ie = 1 - Math.pow(1 - it, 3);
-        const off = k * SPREAD * (.35 + .65 * d.u) * (1 + .3 * Math.sin(d.a * 3 + ph)) + (1 - ie) * (40 + 50 * d.u)
-                  + haloKick * 34 * (.3 + .7 * d.u) * (1 + .4 * Math.sin(d.a * 5));
-        const x = C + d.ux * (d.r + off), y = C + d.uy * (d.r + off);
-        const rad = d.size * (1 - .4 * k);
-        ctx.globalAlpha = Math.min(1, .35 + (1 - d.u) * .75) * (1 - .45 * k) * ie;
-        ctx.fillStyle = d.u < .18 ? "#ff6a6a" : "#ff2a2a";
-        ctx.beginPath(); ctx.arc(x, y, rad, 0, 6.2832); ctx.fill();
-      }
-      haloKick *= .93;
-      if (!calm) requestAnimationFrame(now => draw(now - T0));
-    }
-    if (calm) draw(PERIOD * 10); else requestAnimationFrame(now => draw(now - T0));
   })();
 
-  // Тихий полутон на карточках: веер точек из правого верхнего угла,
-  // медленно «дышит» и чуть ярче при наведении
-  const HT = [];
-  function halftone(card, cv, n) {
-    const item = { card, cv, ctx: cv.getContext("2d"), dots: [], heat: 0, shift: n * 1.9 };
+  // Тихий полутон на карточках: веер точек из правого верхнего угла.
+  // Рисуем один раз (и при смене размера), «дыхание» — CSS-анимация слоя
+  function halftone(card, cv) {
+    const ctx = cv.getContext("2d");
+    let lastW = 0, lastH = 0;
     const build = () => {
       const w = card.clientWidth, h = card.clientHeight, dpr = Math.min(devicePixelRatio || 1, 2);
-      if (!w || !h) return;
+      if (!w || !h || (w === lastW && h === lastH)) return;
+      lastW = w; lastH = h;
       cv.width = w * dpr; cv.height = h * dpr;
-      item.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      item.w = w; item.h = h; item.dots = [];
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = "#ff2a2a";
       const R = Math.min(w, h) * 1.25, STEP = 7;
       for (let gy = -R; gy <= R; gy += STEP)
         for (let gx = -R; gx <= R; gx += STEP) {
           const x = (gx - gy) * .7071, y = (gx + gy) * .7071;  // сетка под 45°
           if (x > 0 || y < 0) continue;                         // только внутрь карточки от угла
-          const r = Math.hypot(x, y), u = r / R;
+          const u = Math.hypot(x, y) / R;
           if (u > 1) continue;
           const size = 2.7 * Math.pow(1 - u, 1.4);
-          if (size > .2) item.dots.push({ x, y, r, u, size, ux: x / (r || 1), uy: y / (r || 1) });
+          if (size < .2) continue;
+          ctx.globalAlpha = .5 * (1 - .55 * u);
+          ctx.beginPath(); ctx.arc(w + x, y, size, 0, 6.2832); ctx.fill();
         }
     };
     build();
     new ResizeObserver(build).observe(card);
-    HT.push(item);
   }
-  (function htLoop(t) {
-    const ph0 = t / 6800 * Math.PI * 2;
-    for (const it of HT) {
-      const { ctx, w, h } = it;
-      if (!w) continue;
-      it.heat += ((it.card.classList.contains("on") ? 1 : 0) - it.heat) * .08;
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = "#ff2a2a";
-      const ph = ph0 + it.shift;
-      for (const d of it.dots) {
-        const s = calm ? 0 : (1 - Math.cos(ph - d.u * 1.4)) / 2;
-        const k = s * s * (3 - 2 * s);
-        const off = k * (2.5 + 3.5 * it.heat) * (.3 + .7 * d.u);
-        ctx.globalAlpha = (.26 + .3 * it.heat) * (1 - .55 * d.u) * (1 - .3 * k);
-        ctx.beginPath();
-        ctx.arc(w + d.x + d.ux * off, d.y + d.uy * off, d.size * (1 - .25 * k), 0, 6.2832);
-        ctx.fill();
-      }
-    }
-    requestAnimationFrame(htLoop);
-  })(0);
 
   // Мягкий красный свет на фоне под пальцем
   (function touchLight() {
     if (calm) return;
     const el = document.getElementById("touchlight");
-    let x = innerWidth / 2, y = innerHeight / 3, tx = x, ty = y, hideT;
-    const aim = e => { tx = e.clientX; ty = e.clientY; el.classList.add("show"); clearTimeout(hideT); };
+    let x = innerWidth / 2, y = innerHeight / 3, tx = x, ty = y, hideT, running = false;
+    const loop = () => {
+      x += (tx - x) * .14; y += (ty - y) * .14;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      running = Math.abs(tx - x) > .5 || Math.abs(ty - y) > .5;
+      if (running) requestAnimationFrame(loop);
+    };
+    const aim = e => {
+      tx = e.clientX; ty = e.clientY; el.classList.add("show"); clearTimeout(hideT);
+      if (!running) { running = true; requestAnimationFrame(loop); }
+    };
     addEventListener("pointerdown", aim, { passive: true });
     addEventListener("pointermove", e => { if (e.pointerType === "mouse" || e.buttons) aim(e); }, { passive: true });
     addEventListener("pointerup", () => { hideT = setTimeout(() => el.classList.remove("show"), 400); }, { passive: true });
-    (function loop() {
-      x += (tx - x) * .14; y += (ty - y) * .14;
-      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-      requestAnimationFrame(loop);
-    })();
   })();
 
   const FALLBACK = { name: "", about: "", contact: "", avatar: "🙂", cards: [] };
@@ -1177,7 +1163,7 @@
         txt.append(h3, make("p", "", c.short));
         const go = make("div", "go"); go.append(make("span", "", "Открыть"));
         go.insertAdjacentHTML("beforeend", svg("arrow"));
-        const ht = make("canvas", "ht"); card.prepend(ht); halftone(card, ht, n);
+        const ht = make("canvas", "ht"); card.prepend(ht); halftone(card, ht);
         card.append(make("div", "num", String(n).padStart(2, "0")), icon, txt, go);
         cell.append(card);
         interactive(card, () => setTimeout(() => openSheet(c, card), 160));
